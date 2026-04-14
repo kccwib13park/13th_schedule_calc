@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>스케줄 가능 여부 계산기</title>
+    <style>
+        body {
+            font-family: 'Pretendard', 'Malgun Gothic', sans-serif;
+            background-color: #f3f4f6;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            max-width: 350px;
+            width: 100%;
+        }
+        h2 {
+            text-align: center;
+            color: #1f2937;
+            margin-top: 0;
+            font-size: 20px;
+        }
+        .section-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #4b5563;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 5px;
+        }
+        .input-group {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .input-group label {
+            font-size: 14px;
+            color: #374151;
+        }
+        .input-group input {
+            width: 50px;
+            padding: 6px;
+            text-align: center;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .input-group input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #2563eb;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .success {
+            background-color: #ecfdf5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+        .error {
+            background-color: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🗓️ 스케줄 가능 여부 계산기</h2>
+
+    <div class="section-title">기본 설정</div>
+    <div class="input-group">
+        <label>총 인원 수 (명)</label>
+        <input type="number" id="workers" value="4">
+    </div>
+    <div class="input-group">
+        <label>기간 (단위: 주)</label>
+        <input type="number" id="weeks" value="4">
+    </div>
+    <div class="input-group">
+        <label>1인당 기본 휴일 수</label>
+        <input type="number" id="basic" value="8">
+    </div>
+    <div class="input-group">
+        <label>1인당 보너스 휴일 수</label>
+        <input type="number" id="bonus" value="2">
+    </div>
+
+    <div class="section-title">요일별 필수 근무 인원</div>
+    <div class="input-group"><label>월요일</label><input type="number" id="mon" value="3"></div>
+    <div class="input-group"><label>화요일</label><input type="number" id="tue" value="3"></div>
+    <div class="input-group"><label>수요일</label><input type="number" id="wed" value="3"></div>
+    <div class="input-group"><label>목요일</label><input type="number" id="thu" value="3"></div>
+    <div class="input-group"><label>금요일</label><input type="number" id="fri" value="3"></div>
+    <div class="input-group"><label>토요일</label><input type="number" id="sat" value="3"></div>
+    <div class="input-group"><label>일요일</label><input type="number" id="sun" value="1"></div>
+
+    <button onclick="calculate()">계산하기</button>
+
+    <div id="result"></div>
+</div>
+
+<script>
+    function calculate() {
+        try {
+            // 1. 입력값 가져오기
+            const workers = parseInt(document.getElementById('workers').value);
+            const weeks = parseInt(document.getElementById('weeks').value);
+            const basic = parseInt(document.getElementById('basic').value);
+            const bonus = parseInt(document.getElementById('bonus').value);
+
+            // 요일별 필수 인원 합계
+            const days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+            let weeklyReqSum = 0;
+            for (let day of days) {
+                weeklyReqSum += parseInt(document.getElementById(day).value);
+            }
+
+            // 2. 핵심 계산 로직
+            const totalReqShifts = weeklyReqSum * weeks;
+            const totalHolidays = basic + bonus;
+            const totalAvailShifts = workers * ((weeks * 7) - totalHolidays);
+
+            // 3. 결과 판별
+            const diff = totalReqShifts - totalAvailShifts;
+            const resultDiv = document.getElementById('result');
+            
+            resultDiv.style.display = 'block';
+
+            if (diff <= 0) {
+                resultDiv.className = 'success';
+                resultDiv.innerHTML = `✅ <b>스케줄 작성이 가능합니다!</b><br><br>남는 여유 근무 횟수: ${Math.abs(diff)}회`;
+            } else {
+                resultDiv.className = 'error';
+                resultDiv.innerHTML = `❌ <b>스케줄 작성이 불가능합니다.</b><br><br>필요한 근무가 <b>${diff}회</b> 부족합니다.<br>따라서 필수 인원을 줄여야 하는 날은 최소 <b>${diff}일</b>입니다.`;
+            }
+        } catch (e) {
+            alert("모든 칸에 올바른 숫자를 입력해주세요.");
+        }
+    }
+</script>
+
+</body>
+</html>
