@@ -79,4 +79,77 @@
             const startDateStr = document.getElementById('start_date').value;
             const endDateStr = document.getElementById('end_date').value;
             
-            if (!startDateStr || !
+            if (!startDateStr || !endDateStr) {
+                alert("달력에서 시작일과 종료일을 모두 선택해주세요.");
+                return;
+            }
+
+            // PC 브라우저별 시간대 차이(Timezone) 버그 방지를 위해 -를 /로 치환
+            const startDate = new Date(startDateStr.replace(/-/g, '/'));
+            const endDate = new Date(endDateStr.replace(/-/g, '/'));
+            endDate.setHours(23, 59, 59); // 종료일을 그 날의 끝 시간으로 맞춰 오차 방지
+
+            if (startDate > endDate) {
+                alert("종료일이 시작일보다 빠를 수 없습니다.");
+                return;
+            }
+
+            // 2. 선택된 기간 내 요일별 개수 계산
+            let current = new Date(startDate);
+            let dayCounts = [0, 0, 0, 0, 0, 0, 0]; // 0:일 ~ 6:토
+            let totalDays = 0;
+
+            while (current <= endDate) {
+                dayCounts[current.getDay()]++;
+                current.setDate(current.getDate() + 1);
+                totalDays++;
+            }
+
+            // 3. 인원 및 휴일 설정 가져오기 (빈칸일 경우 0으로 자동 처리)
+            const workers = Number(document.getElementById('workers').value) || 0;
+            const basic = Number(document.getElementById('basic').value) || 0;
+            const bonus = Number(document.getElementById('bonus').value) || 0;
+
+            // 4. 요일별 필수 인원 가져오기
+            const req = [
+                Number(document.getElementById('sun').value) || 0,
+                Number(document.getElementById('mon').value) || 0,
+                Number(document.getElementById('tue').value) || 0,
+                Number(document.getElementById('wed').value) || 0,
+                Number(document.getElementById('thu').value) || 0,
+                Number(document.getElementById('fri').value) || 0,
+                Number(document.getElementById('sat').value) || 0
+            ];
+
+            // 5. 총 계산 수행
+            let totalReqShifts = 0;
+            for (let i = 0; i < 7; i++) {
+                totalReqShifts += dayCounts[i] * req[i];
+            }
+
+            const totalHolidays = basic + bonus;
+            const totalAvailShifts = workers * (totalDays - totalHolidays);
+            const diff = totalReqShifts - totalAvailShifts;
+
+            // 6. 화면에 결과 출력
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+
+            let summaryHtml = `<div class="summary">총 ${totalDays}일 (필요 근무: ${totalReqShifts}회 / 가능 근무: ${totalAvailShifts}회)</div>`;
+
+            if (diff <= 0) {
+                resultDiv.className = 'success';
+                resultDiv.innerHTML = `✅ <b>스케줄 작성이 가능합니다!</b><br><br>남는 여유 근무 횟수: <b>${Math.abs(diff)}회</b>` + summaryHtml;
+            } else {
+                resultDiv.className = 'error';
+                resultDiv.innerHTML = `❌ <b>스케줄 작성이 불가능합니다.</b><br><br>필요한 근무가 <b>${diff}회</b> 부족합니다.<br>필수 근무 인원을 줄여야 하는 날은 최소 <b>${diff}일</b>입니다.` + summaryHtml;
+            }
+        } catch (e) {
+            console.error("오류 발생:", e);
+            alert("계산 중 알 수 없는 오류가 발생했습니다.");
+        }
+    }
+</script>
+
+</body>
+</html>
