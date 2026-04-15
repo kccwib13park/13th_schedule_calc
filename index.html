@@ -171,7 +171,7 @@
 
         <button type="submit" class="btn">계산하기</button>
         <div id="result" class="result"></div>
-        <p class="hint">* 시작일 변경 시 종료일은 해당 월 말일이 속한 주의 토요일(불가 시 다음 달 말일이 속한 주의 토요일)로 자동 설정됩니다. 기본휴일은 주당 1~2회 반드시 사용, 보너스휴일은 주당 제한 없이 사용한다고 가정합니다.</p>
+        <p class="hint">* 시작일 변경 시 종료일은 해당 월 말일이 속한 주의 토요일(불가 시 다음 달 말일이 속한 주의 토요일)로 자동 설정됩니다. 기본휴일(주말 수)·공휴(주말 제외 국정 공휴일 수)는 선택한 기간을 기준으로 자동 계산됩니다.</p>
       </form>
     </section>
   </main>
@@ -185,6 +185,46 @@
       const x = new Date(date);
       x.setUTCDate(x.getUTCDate() + n);
       return x;
+    };
+    // 대한민국 공휴일(필요 연도만 빠르게 조회할 수 있도록 사전 정의)
+    // 형식: YYYY-MM-DD
+    const KR_HOLIDAYS = {
+      2026: new Set([
+        '2026-01-01',
+        '2026-02-16', '2026-02-17', '2026-02-18',
+        '2026-03-01', '2026-03-02',
+        '2026-05-05', '2026-05-25',
+        '2026-06-06',
+        '2026-08-15',
+        '2026-09-24', '2026-09-25', '2026-09-26',
+        '2026-10-03', '2026-10-09',
+        '2026-12-25'
+      ])
+    };
+    const formatDateUTC = (date) => {
+      const y = date.getUTCFullYear();
+      const m = String(date.getUTCMonth() + 1).padStart(2, '0');
+      const d = String(date.getUTCDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    };
+    const countRestDays = (start, end) => {
+      let weekendCount = 0;
+      let holidayCount = 0;
+      let cur = new Date(start);
+
+      while (cur <= end) {
+        const dow = cur.getUTCDay();
+        const isWeekend = dow === 0 || dow === 6;
+        if (isWeekend) {
+          weekendCount++;
+        } else {
+          const y = cur.getUTCFullYear();
+          const holidaySet = KR_HOLIDAYS[y];
+          if (holidaySet && holidaySet.has(formatDateUTC(cur))) holidayCount++;
+        }
+        cur = addDays(cur, 1);
+      }
+      return { weekendCount, holidayCount };
     };
     const endOfWeekSaturdayUTC = (date) => {
       const out = new Date(date);
@@ -213,6 +253,20 @@
       const mm = String(target.getUTCMonth() + 1).padStart(2, '0');
       const dd = String(target.getUTCDate()).padStart(2, '0');
       endInput.value = `${yy}-${mm}-${dd}`;
+      autoFillHolidayInputs();
+    };
+    const autoFillHolidayInputs = () => {
+      const startValue = document.getElementById('start_date').value;
+      const endValue = document.getElementById('end_date').value;
+      if (!startValue || !endValue) return;
+
+      const start = toDate(startValue);
+      const end = toDate(endValue);
+      if (start > end) return;
+
+      const { weekendCount, holidayCount } = countRestDays(start, end);
+      document.getElementById('basic').value = weekendCount;
+      document.getElementById('bonus').value = holidayCount;
     };
 
     function buildPeriod(startDate, endDate) {
@@ -327,9 +381,12 @@
     const form = document.getElementById('schedule-form');
     const result = document.getElementById('result');
     const startInput = document.getElementById('start_date');
+    const endInput = document.getElementById('end_date');
 
     startInput.addEventListener('change', autoAdjustEndDate);
+    endInput.addEventListener('change', autoFillHolidayInputs);
     autoAdjustEndDate();
+    autoFillHolidayInputs();
 
     form.addEventListener('submit', (e) => {
       e.preventDefault();
