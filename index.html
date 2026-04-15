@@ -6,124 +6,43 @@
   <title>스케줄 가능 여부 계산기</title>
   <style>
     :root {
-      --bg: #f3f5fb;
-      --card: #fff;
-      --text: #1f2937;
-      --muted: #6b7280;
-      --line: #e5e7eb;
-      --primary: #2563eb;
-      --ok-bg: #ecfdf5;
-      --ok-fg: #065f46;
-      --ok-line: #a7f3d0;
-      --bad-bg: #fef2f2;
-      --bad-fg: #991b1b;
-      --bad-line: #fecaca;
+      --bg: #f3f5fb; --card: #fff; --text: #1f2937; --muted: #6b7280; --line: #e5e7eb;
+      --primary: #2563eb; --ok-bg: #ecfdf5; --ok-fg: #065f46; --ok-line: #a7f3d0;
+      --bad-bg: #fef2f2; --bad-fg: #991b1b; --bad-line: #fecaca;
     }
     * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: Pretendard, "Malgun Gothic", system-ui, sans-serif;
-      background: linear-gradient(180deg, #eef2ff 0%, var(--bg) 160px, var(--bg) 100%);
-      color: var(--text);
-      padding: 18px;
-    }
-    .wrap {
-      max-width: 860px;
-      margin: 0 auto;
-      display: grid;
-      gap: 16px;
-    }
-    .card {
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
-      padding: 18px;
-    }
-    h1 {
-      margin: 0;
-      font-size: clamp(20px, 3vw, 28px);
-    }
+    body { margin: 0; font-family: Pretendard, "Malgun Gothic", system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 18px; }
+    .wrap { max-width: 900px; margin: 0 auto; display: grid; gap: 16px; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 8px 24px rgba(15,23,42,.06); padding: 18px; }
+    h1 { margin: 0; font-size: clamp(20px,3vw,28px); }
     .desc { margin: 10px 0 0; color: var(--muted); font-size: 14px; line-height: 1.6; }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
-    }
-    .section-title {
-      margin: 8px 0 10px;
-      font-size: 14px;
-      color: #374151;
-      font-weight: 700;
-      grid-column: 1 / -1;
-    }
-    label {
-      display: block;
-      font-size: 13px;
-      font-weight: 600;
-      color: #374151;
-      margin-bottom: 6px;
-    }
-    input {
-      width: 100%;
-      border: 1px solid #d1d5db;
-      border-radius: 10px;
-      padding: 10px;
-      font-size: 15px;
-      font-family: inherit;
-      background: #fff;
-    }
-    input:focus {
-      outline: 2px solid rgba(37, 99, 235, 0.2);
-      border-color: var(--primary);
-    }
-    .weekday-grid {
-      display: grid;
-      grid-template-columns: repeat(7, minmax(0, 1fr));
-      gap: 8px;
-    }
+    .top-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .week-box { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+    .week-box label { margin: 0; font-size: 13px; font-weight: 700; }
+    .week-box input { width: 74px; text-align: center; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
+    .section-title { margin: 8px 0 10px; font-size: 14px; color: #374151; font-weight: 700; grid-column: 1 / -1; }
+    label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px; }
+    input, textarea { width: 100%; border: 1px solid #d1d5db; border-radius: 10px; padding: 10px; font-size: 14px; font-family: inherit; }
+    input[readonly] { background: #f9fafb; color: #374151; }
+    input:focus, textarea:focus { outline: 2px solid rgba(37,99,235,.2); border-color: var(--primary); }
+    .weekday-grid { display: grid; grid-template-columns: repeat(7, minmax(0,1fr)); gap: 8px; }
     .weekday-grid label { margin-bottom: 4px; text-align: center; font-size: 12px; }
-    .btn {
-      margin-top: 14px;
-      width: 100%;
-      border: 0;
-      border-radius: 10px;
-      padding: 12px;
-      background: var(--primary);
-      color: #fff;
-      font-size: 16px;
-      font-weight: 700;
-      cursor: pointer;
-    }
+    .btn { margin-top: 14px; width: 100%; border: 0; border-radius: 10px; padding: 12px; background: var(--primary); color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; }
     .btn:hover { background: #1d4ed8; }
     .result { display: none; margin-top: 12px; border-radius: 12px; border: 1px solid; padding: 14px; line-height: 1.6; }
     .result.success { background: var(--ok-bg); color: var(--ok-fg); border-color: var(--ok-line); }
     .result.error { background: var(--bad-bg); color: var(--bad-fg); border-color: var(--bad-line); }
-    .stats {
-      margin-top: 10px;
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 8px;
-    }
-    .stat {
-      border: 1px dashed #d1d5db;
-      border-radius: 10px;
-      background: #fff;
-      padding: 8px;
-      text-align: center;
-      color: #374151;
-      font-size: 12px;
-    }
-    .hint {
-      margin-top: 8px;
-      color: var(--muted);
-      font-size: 12px;
-    }
+    .stats { margin-top: 10px; display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 8px; }
+    .stat { border: 1px dashed #d1d5db; border-radius: 10px; background: #fff; padding: 8px; text-align: center; color: #374151; font-size: 12px; }
+    .hint { margin-top: 8px; color: var(--muted); font-size: 12px; }
+    #holiday_monthly { margin-top: 6px; font-size: 12px; color: #4b5563; }
     @media (max-width: 760px) {
       body { padding: 12px; }
       .card { padding: 14px; }
-      .grid { grid-template-columns: 1fr; }
-      .weekday-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .grid, .weekday-grid { grid-template-columns: 1fr; }
+      .top-row { flex-direction: column; align-items: stretch; }
+      .week-box { width: 100%; justify-content: flex-end; }
       .stats { grid-template-columns: 1fr; }
     }
   </style>
@@ -132,30 +51,39 @@
   <main class="wrap">
     <section class="card">
       <h1>🗓️ 스케줄 가능 여부 계산기</h1>
-      <p class="desc">
-        "주당 기본휴일 1~2회 + 보너스휴일 제한 없음" 규칙을 반영해,
-        기간 전체에서 실제로 스케줄이 가능한지 계산합니다.
-        불가능하면 <b>필수 인원을 3명→2명으로 낮춰야 하는 최소 일수</b>를 보여줍니다.
-      </p>
+      <p class="desc">시작일은 <b>월요일만</b> 허용되며, 주차(4/5)에 따라 종료일(일요일)이 자동 계산됩니다. 주말 수를 기본휴일로, 입력한 공휴일 목록(주말 제외)을 공휴로 자동 반영합니다.</p>
     </section>
 
     <section class="card">
       <form id="schedule-form" novalidate>
+        <div class="top-row">
+          <h2 class="section-title" style="margin:0;">근무 기간</h2>
+          <div class="week-box">
+            <label for="weeks">주차</label>
+            <input type="number" id="weeks" value="4" min="4" max="5" step="1" />
+          </div>
+        </div>
+
         <div class="grid">
-          <h2 class="section-title">근무 기간</h2>
           <div>
-            <label for="start_date">시작일</label>
+            <label for="start_date">시작일 (월요일만 가능)</label>
             <input type="date" id="start_date" value="2026-05-04" required />
           </div>
           <div>
-            <label for="end_date">종료일</label>
-            <input type="date" id="end_date" value="2026-05-31" required />
+            <label for="end_date_display">종료일 (자동, 일요일)</label>
+            <input type="text" id="end_date_display" readonly />
+            <input type="hidden" id="end_date" />
           </div>
 
           <h2 class="section-title">인원 / 휴일</h2>
           <div><label for="workers">총 인원 수</label><input type="number" id="workers" min="1" value="4" required /></div>
-          <div><label for="basic">1인당 기본휴일 수</label><input type="number" id="basic" min="0" value="8" required /></div>
-          <div><label for="bonus">1인당 보너스휴일 수</label><input type="number" id="bonus" min="0" value="2" required /></div>
+          <div><label for="basic">1인당 기본휴일 수 (자동)</label><input type="number" id="basic" min="0" value="8" readonly /></div>
+          <div><label for="bonus">1인당 공휴 수 (자동)</label><input type="number" id="bonus" min="0" value="2" readonly /></div>
+          <div>
+            <label for="holiday_input">공휴일 직접 입력 (쉼표/줄바꿈, YYYY-MM-DD)</label>
+            <textarea id="holiday_input" rows="3" placeholder="예: 2026-05-05, 2026-05-25">2026-05-05, 2026-05-25</textarea>
+            <div id="holiday_monthly"></div>
+          </div>
         </div>
 
         <h2 class="section-title">요일별 필수 근무 인원</h2>
@@ -171,7 +99,7 @@
 
         <button type="submit" class="btn">계산하기</button>
         <div id="result" class="result"></div>
-        <p class="hint">* 시작일 변경 시 종료일은 해당 월 말일이 속한 주의 토요일(불가 시 다음 달 말일이 속한 주의 토요일)로 자동 설정됩니다. 기본휴일(주말 수)·공휴(주말 제외 국정 공휴일 수)는 선택한 기간을 기준으로 자동 계산됩니다.</p>
+        <p class="hint">* 시작일이 월요일이 아니면 에러 알림 후 해당 주 월요일로 자동 보정됩니다.</p>
       </form>
     </section>
   </main>
@@ -186,75 +114,58 @@
       x.setUTCDate(x.getUTCDate() + n);
       return x;
     };
-    // 대한민국 공휴일(필요 연도만 빠르게 조회할 수 있도록 사전 정의)
-    // 형식: YYYY-MM-DD
-    const KR_HOLIDAYS = {
-      2026: new Set([
-        '2026-01-01',
-        '2026-02-16', '2026-02-17', '2026-02-18',
-        '2026-03-01', '2026-03-02',
-        '2026-05-05', '2026-05-25',
-        '2026-06-06',
-        '2026-08-15',
-        '2026-09-24', '2026-09-25', '2026-09-26',
-        '2026-10-03', '2026-10-09',
-        '2026-12-25'
-      ])
-    };
     const formatDateUTC = (date) => {
       const y = date.getUTCFullYear();
       const m = String(date.getUTCMonth() + 1).padStart(2, '0');
       const d = String(date.getUTCDate()).padStart(2, '0');
       return `${y}-${m}-${d}`;
     };
-    const countRestDays = (start, end) => {
-      let weekendCount = 0;
-      let holidayCount = 0;
-      let cur = new Date(start);
 
-      while (cur <= end) {
-        const dow = cur.getUTCDay();
-        const isWeekend = dow === 0 || dow === 6;
-        if (isWeekend) {
-          weekendCount++;
-        } else {
-          const y = cur.getUTCFullYear();
-          const holidaySet = KR_HOLIDAYS[y];
-          if (holidaySet && holidaySet.has(formatDateUTC(cur))) holidayCount++;
-        }
-        cur = addDays(cur, 1);
+    const parseHolidayInput = (raw) => {
+      const parts = raw.split(/[\s,]+/).map((x) => x.trim()).filter(Boolean);
+      const set = new Set();
+      for (const p of parts) {
+        if (/^\d{4}-\d{2}-\d{2}$/.test(p)) set.add(p);
       }
-      return { weekendCount, holidayCount };
+      return set;
     };
-    const endOfWeekSaturdayUTC = (date) => {
-      const out = new Date(date);
-      const offset = (6 - out.getUTCDay() + 7) % 7;
-      out.setUTCDate(out.getUTCDate() + offset);
-      return out;
+
+    const toMonday = (date) => {
+      const dow = date.getUTCDay();
+      const delta = dow === 0 ? -6 : 1 - dow; // 일요일이면 이전 월요일
+      return addDays(date, delta);
     };
-    const autoAdjustEndDate = () => {
+
+    const syncRangeByStartAndWeeks = (showAlert = false) => {
       const startInput = document.getElementById('start_date');
       const endInput = document.getElementById('end_date');
+      const endDisplay = document.getElementById('end_date_display');
+      const weeksInput = document.getElementById('weeks');
       if (!startInput.value) return;
 
-      const start = toDate(startInput.value);
-      const y = start.getUTCFullYear();
-      const m = start.getUTCMonth();
+      let start = toDate(startInput.value);
 
-      const monthEnd = new Date(Date.UTC(y, m + 1, 0));
-      let target = endOfWeekSaturdayUTC(monthEnd);
-
-      if (target < start) {
-        const nextMonthEnd = new Date(Date.UTC(y, m + 2, 0));
-        target = endOfWeekSaturdayUTC(nextMonthEnd);
+      if (start.getUTCDay() !== 1) {
+        const fixedMonday = toMonday(start);
+        if (showAlert) alert('시작일은 월요일만 가능합니다. 선택한 날짜의 해당 주 월요일로 자동 수정합니다.');
+        start = fixedMonday;
+        startInput.value = formatDateUTC(start);
       }
 
-      const yy = target.getUTCFullYear();
-      const mm = String(target.getUTCMonth() + 1).padStart(2, '0');
-      const dd = String(target.getUTCDate()).padStart(2, '0');
-      endInput.value = `${yy}-${mm}-${dd}`;
+      let weeks = Number(weeksInput.value);
+      if (![4, 5].includes(weeks)) {
+        if (showAlert) alert('주차는 4 또는 5만 입력 가능합니다. 기본값 4로 설정합니다.');
+        weeks = 4;
+        weeksInput.value = '4';
+      }
+
+      const end = addDays(start, weeks * 7 - 1); // 반드시 일요일
+      endInput.value = formatDateUTC(end);
+      endDisplay.value = `${formatDateUTC(end)} (일요일)`;
+
       autoFillHolidayInputs();
     };
+
     const autoFillHolidayInputs = () => {
       const startValue = document.getElementById('start_date').value;
       const endValue = document.getElementById('end_date').value;
@@ -264,9 +175,32 @@
       const end = toDate(endValue);
       if (start > end) return;
 
-      const { weekendCount, holidayCount } = countRestDays(start, end);
+      const holidaySet = parseHolidayInput(document.getElementById('holiday_input').value);
+      let weekendCount = 0;
+      let holidayCount = 0;
+      const monthly = {};
+
+      let cur = new Date(start);
+      while (cur <= end) {
+        const dow = cur.getUTCDay();
+        const key = formatDateUTC(cur);
+        const ym = key.slice(0, 7);
+        const isWeekend = dow === 0 || dow === 6;
+
+        if (isWeekend) {
+          weekendCount++;
+        } else if (holidaySet.has(key)) {
+          holidayCount++;
+          monthly[ym] = (monthly[ym] || 0) + 1;
+        }
+        cur = addDays(cur, 1);
+      }
+
       document.getElementById('basic').value = weekendCount;
       document.getElementById('bonus').value = holidayCount;
+
+      const monthlyText = Object.keys(monthly).sort().map((m) => `${m}: ${monthly[m]}일`).join(' / ') || '월별 공휴일(주말 제외): 0일';
+      document.getElementById('holiday_monthly').textContent = `월별 공휴일(주말 제외): ${monthlyText}`;
     };
 
     function buildPeriod(startDate, endDate) {
@@ -274,7 +208,7 @@
       let cur = new Date(startDate);
       while (cur <= endDate) {
         const dow = cur.getUTCDay(); // 0:일~6:토
-        days.push({ date: new Date(cur), dow, isWeekEnd: dow === 6 || cur.getTime() === endDate.getTime() });
+        days.push({ dow, isWeekEnd: dow === 0 || cur.getTime() === endDate.getTime() });
         cur = addDays(cur, 1);
       }
       return days;
@@ -286,7 +220,7 @@
       if (cfg.basic < weeksCount || cfg.basic > weeksCount * 2) {
         return `기본휴일 ${cfg.basic}일은 기간 내 ${weeksCount}주 규칙(주당 1~2회)과 맞지 않습니다. (${weeksCount}~${weeksCount * 2}일 필요)`;
       }
-      if (cfg.basic + cfg.bonus > totalDays) return '1인당 전체 휴일(기본+보너스)이 기간 일수보다 많습니다.';
+      if (cfg.basic + cfg.bonus > totalDays) return '1인당 전체 휴일(기본+공휴)이 기간 일수보다 많습니다.';
       if (cfg.required.some((n) => n < 0 || !Number.isInteger(n))) return '요일별 필수 인원은 0 이상 정수여야 합니다.';
       if (cfg.required.some((n) => n > cfg.workers)) return '요일별 필수 인원은 총 인원 수를 초과할 수 없습니다.';
       return '';
@@ -299,72 +233,49 @@
       const weeksCount = period.filter((d) => d.isWeekEnd).length;
 
       const inputError = validateInput(cfg, weeksCount, totalDays);
-      if (inputError) {
-        return { ok: false, inputError, totalDays, totalReq, maxCovered: 0, shortage: totalReq, weeksCount };
-      }
+      if (inputError) return { ok: false, inputError, totalDays, totalReq, maxCovered: 0, shortage: totalReq, weeksCount };
 
       const totalOff = cfg.workers * (cfg.basic + cfg.bonus);
       const totalBasic = cfg.workers * cfg.basic;
-      if (totalOff > cfg.workers * totalDays) {
-        return {
-          ok: false,
-          inputError: '총 휴일 수가 전체 배치 가능한 인원-일수를 초과합니다.',
-          totalDays,
-          totalReq,
-          maxCovered: 0,
-          shortage: totalReq,
-          weeksCount
-        };
-      }
-
-      // DP state: dayIdx, usedOff, currentWeekOff, completedWeekCap -> 최소 shortage
-      // completedWeekCap: 완료된 주들에서 배치 가능한 basic 휴일 최대치 합 (sum of min(2*workers, weekOff)).
       let states = new Map();
-      states.set('0|0|0', 0); // usedOff|weekOff|cap => minShortage
+      states.set('0|0|0', 0); // usedOff|weekOff|cap => shortage
 
-      const upsert = (map, key, value) => {
+      const upsert = (map, key, val) => {
         const prev = map.get(key);
-        if (prev === undefined || value < prev) map.set(key, value);
+        if (prev === undefined || val < prev) map.set(key, val);
       };
 
       for (let dayIdx = 0; dayIdx < period.length; dayIdx++) {
         const day = period[dayIdx];
         const slack = cfg.workers - cfg.required[day.dow];
-        const nextStates = new Map();
+        const next = new Map();
 
         for (const [key, curShortage] of states) {
           const [usedOff, weekOff, cap] = key.split('|').map(Number);
-
           for (let off = 0; off <= cfg.workers; off++) {
-            const nextUsedOff = usedOff + off;
-            if (nextUsedOff > totalOff) continue;
+            const nextUsed = usedOff + off;
+            if (nextUsed > totalOff) continue;
 
             let nextWeekOff = weekOff + off;
             let nextCap = cap;
-
             if (day.isWeekEnd) {
-              if (nextWeekOff < cfg.workers) continue; // 주당 기본휴일 최소치(인원당 1일) 실현 불가
+              if (nextWeekOff < cfg.workers) continue;
               nextCap += Math.min(cfg.workers * 2, nextWeekOff);
               nextWeekOff = 0;
             }
 
-            const dayShortage = Math.max(0, off - slack);
-            const shortage = curShortage + dayShortage;
-            upsert(nextStates, `${nextUsedOff}|${nextWeekOff}|${nextCap}`, shortage);
+            const shortage = curShortage + Math.max(0, off - slack);
+            upsert(next, `${nextUsed}|${nextWeekOff}|${nextCap}`, shortage);
           }
         }
-
-        states = nextStates;
+        states = next;
       }
 
       let minShortage = Number.POSITIVE_INFINITY;
-
       for (const [key, shortage] of states) {
         const [usedOff, weekOff, cap] = key.split('|').map(Number);
-        if (usedOff !== totalOff) continue;
-        if (weekOff !== 0) continue;
-        if (cap < totalBasic) continue; // 주당 최대 2회 제약 안에서 basic 총량 배치 불가
-        if (shortage < minShortage) minShortage = shortage;
+        if (usedOff !== totalOff || weekOff !== 0 || cap < totalBasic) continue;
+        minShortage = Math.min(minShortage, shortage);
       }
 
       if (!Number.isFinite(minShortage)) {
@@ -372,36 +283,28 @@
       }
 
       const shortage = Math.max(0, minShortage);
-      const maxCovered = totalReq - shortage;
-      const ok = shortage === 0;
-
-      return { ok, totalDays, totalReq, maxCovered, shortage, weeksCount, inputError: '' };
+      return { ok: shortage === 0, totalDays, totalReq, maxCovered: totalReq - shortage, shortage, weeksCount, inputError: '' };
     }
 
     const form = document.getElementById('schedule-form');
-    const result = document.getElementById('result');
     const startInput = document.getElementById('start_date');
-    const endInput = document.getElementById('end_date');
+    const weeksInput = document.getElementById('weeks');
+    const holidayInput = document.getElementById('holiday_input');
+    const result = document.getElementById('result');
 
-    startInput.addEventListener('change', autoAdjustEndDate);
-    endInput.addEventListener('change', autoFillHolidayInputs);
-    autoAdjustEndDate();
-    autoFillHolidayInputs();
+    startInput.addEventListener('change', () => syncRangeByStartAndWeeks(true));
+    weeksInput.addEventListener('change', () => syncRangeByStartAndWeeks(true));
+    holidayInput.addEventListener('input', autoFillHolidayInputs);
+
+    syncRangeByStartAndWeeks(false);
 
     form.addEventListener('submit', (e) => {
       e.preventDefault();
-
-      const startStr = document.getElementById('start_date').value;
-      const endStr = document.getElementById('end_date').value;
-      if (!startStr || !endStr) return alert('시작일/종료일을 입력하세요.');
-
-      const startDate = toDate(startStr);
-      const endDate = toDate(endStr);
-      if (startDate > endDate) return alert('종료일이 시작일보다 빠를 수 없습니다.');
+      syncRangeByStartAndWeeks(true);
 
       const cfg = {
-        startDate,
-        endDate,
+        startDate: toDate(document.getElementById('start_date').value),
+        endDate: toDate(document.getElementById('end_date').value),
         workers: Number(document.getElementById('workers').value),
         basic: Number(document.getElementById('basic').value),
         bonus: Number(document.getElementById('bonus').value),
@@ -425,17 +328,15 @@
         return;
       }
 
-      const statHtml = `
-        <div class="stats">
-          <div class="stat">기간 일수<br><b>${rs.totalDays}일</b></div>
-          <div class="stat">필요 근무 총합<br><b>${rs.totalReq}회</b></div>
-          <div class="stat">최대 충족 가능<br><b>${rs.maxCovered}회</b></div>
-        </div>
-      `;
+      const statHtml = `<div class="stats">
+        <div class="stat">기간 일수<br><b>${rs.totalDays}일</b></div>
+        <div class="stat">필요 근무 총합<br><b>${rs.totalReq}회</b></div>
+        <div class="stat">최대 충족 가능<br><b>${rs.maxCovered}회</b></div>
+      </div>`;
 
       if (rs.ok) {
         result.className = 'result success';
-        result.innerHTML = `✅ <b>주어진 규칙으로 스케줄 작성이 가능합니다.</b><br>주당 기본휴일 1~2회 제약까지 모두 만족합니다.` + statHtml;
+        result.innerHTML = `✅ <b>주어진 규칙으로 스케줄 작성이 가능합니다.</b>` + statHtml;
       } else {
         result.className = 'result error';
         result.innerHTML = `❌ <b>주어진 규칙으로는 스케줄 작성이 불가능합니다.</b><br>필수 인원을 3명→2명으로 낮춰야 하는 최소 일수: <b>${rs.shortage}일</b>` + statHtml;
