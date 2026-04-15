@@ -212,11 +212,6 @@
       const dd = String(target.getUTCDate()).padStart(2, '0');
       endInput.value = `${yy}-${mm}-${dd}`;
     };
-    const keyBySortedWorkers = (workersState) =>
-      workersState
-        .map((w) => `${w.b}/${w.o}/${w.w}`)
-        .sort()
-        .join('|');
 
     function buildPeriod(startDate, endDate) {
       const days = [];
@@ -252,70 +247,77 @@
         return { ok: false, inputError, totalDays, totalReq, maxCovered: 0, shortage: totalReq, weeksCount };
       }
 
-      const initialWorkers = Array.from({ length: cfg.workers }, () => ({ b: 0, o: 0, w: 0 }));
-      const memo = new Map();
-
-      const dfs = (dayIdx, workersState) => {
-        if (dayIdx === period.length) {
-          for (const w of workersState) {
-            if (w.b !== cfg.basic || w.o !== cfg.bonus) return Number.NEGATIVE_INFINITY;
-          }
-          return 0;
-        }
-
-        const stateKey = `${dayIdx}#${keyBySortedWorkers(workersState)}`;
-        if (memo.has(stateKey)) return memo.get(stateKey);
-
-        const today = period[dayIdx];
-        const todayReq = cfg.required[today.dow];
-        let best = Number.NEGATIVE_INFINITY;
-        const actions = new Array(workersState.length);
-
-        const enumerate = (idx) => {
-          if (idx === workersState.length) {
-            let workCount = 0;
-            const next = workersState.map((w, i) => ({ ...w }));
-
-            for (let i = 0; i < next.length; i++) {
-              if (actions[i] === 0) {
-                workCount++;
-              } else if (actions[i] === 1) {
-                if (next[i].b >= cfg.basic || next[i].w >= 2) return;
-                next[i].b++;
-                next[i].w++;
-              } else {
-                if (next[i].o >= cfg.bonus) return;
-                next[i].o++;
-              }
-            }
-
-            if (today.isWeekEnd) {
-              for (const w of next) {
-                if (w.w < 1 || w.w > 2) return;
-                w.w = 0;
-              }
-            }
-
-            const todayCovered = Math.min(workCount, todayReq);
-            const rest = dfs(dayIdx + 1, next);
-            if (rest !== Number.NEGATIVE_INFINITY) best = Math.max(best, todayCovered + rest);
-            return;
-          }
-
-          for (let act = 0; act < 3; act++) {
-            actions[idx] = act;
-            enumerate(idx + 1);
-          }
+      const totalOff = cfg.workers * (cfg.basic + cfg.bonus);
+      const totalBasic = cfg.workers * cfg.basic;
+      if (totalOff > cfg.workers * totalDays) {
+        return {
+          ok: false,
+          inputError: '총 휴일 수가 전체 배치 가능한 인원-일수를 초과합니다.',
+          totalDays,
+          totalReq,
+          maxCovered: 0,
+          shortage: totalReq,
+          weeksCount
         };
+      }
 
-        enumerate(0);
-        memo.set(stateKey, best);
-        return best;
+      // DP state: dayIdx, usedOff, currentWeekOff, completedWeekCap -> 최소 shortage
+      // completedWeekCap: 완료된 주들에서 배치 가능한 basic 휴일 최대치 합 (sum of min(2*workers, weekOff)).
+      let states = new Map();
+      states.set('0|0|0', 0); // usedOff|weekOff|cap => minShortage
+
+      const upsert = (map, key, value) => {
+        const prev = map.get(key);
+        if (prev === undefined || value < prev) map.set(key, value);
       };
 
-      const maxCovered = dfs(0, initialWorkers);
-      const shortage = maxCovered === Number.NEGATIVE_INFINITY ? totalReq : Math.max(0, totalReq - maxCovered);
-      const ok = shortage === 0 && maxCovered !== Number.NEGATIVE_INFINITY;
+      for (let dayIdx = 0; dayIdx < period.length; dayIdx++) {
+        const day = period[dayIdx];
+        const slack = cfg.workers - cfg.required[day.dow];
+        const nextStates = new Map();
+
+        for (const [key, curShortage] of states) {
+          const [usedOff, weekOff, cap] = key.split('|').map(Number);
+
+          for (let off = 0; off <= cfg.workers; off++) {
+            const nextUsedOff = usedOff + off;
+            if (nextUsedOff > totalOff) continue;
+
+            let nextWeekOff = weekOff + off;
+            let nextCap = cap;
+
+            if (day.isWeekEnd) {
+              if (nextWeekOff < cfg.workers) continue; // 주당 기본휴일 최소치(인원당 1일) 실현 불가
+              nextCap += Math.min(cfg.workers * 2, nextWeekOff);
+              nextWeekOff = 0;
+            }
+
+            const dayShortage = Math.max(0, off - slack);
+            const shortage = curShortage + dayShortage;
+            upsert(nextStates, `${nextUsedOff}|${nextWeekOff}|${nextCap}`, shortage);
+          }
+        }
+
+        states = nextStates;
+      }
+
+      let minShortage = Number.POSITIVE_INFINITY;
+
+      for (const [key, shortage] of states) {
+        const [usedOff, weekOff, cap] = key.split('|').map(Number);
+        if (usedOff !== totalOff) continue;
+        if (weekOff !== 0) continue;
+        if (cap < totalBasic) continue; // 주당 최대 2회 제약 안에서 basic 총량 배치 불가
+        if (shortage < minShortage) minShortage = shortage;
+      }
+
+      if (!Number.isFinite(minShortage)) {
+        return { ok: false, inputError: '주당 기본휴일(1~2회) 제약을 만족하는 배치가 존재하지 않습니다.', totalDays, totalReq, maxCovered: 0, shortage: totalReq, weeksCount };
+      }
+
+      const shortage = Math.max(0, minShortage);
+      const maxCovered = totalReq - shortage;
+      const ok = shortage === 0;
 
       return { ok, totalDays, totalReq, maxCovered, shortage, weeksCount, inputError: '' };
     }
