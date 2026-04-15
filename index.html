@@ -22,6 +22,8 @@
     .week-box input { width: 74px; text-align: center; }
     .month-box select { width: 120px; font-size: 16px; font-weight: 700; padding: 10px; }
     .mini-btn { border: 1px solid #cbd5e1; background: #fff; color: #1f2937; border-radius: 10px; padding: 10px 12px; font-size: 13px; cursor: pointer; }
+    .month-toolbar { display:grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+    .month-toolbar select, .month-toolbar .mini-btn { width: 100%; height: 44px; font-size: 16px; }
     .grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
     .section-title { margin: 8px 0 10px; font-size: 14px; color: #374151; font-weight: 700; grid-column: 1 / -1; }
     label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px; }
@@ -53,28 +55,25 @@
 <body>
   <main class="wrap">
     <section class="card">
-      <h1>🗓️ 스케줄 가능 여부 계산기</h1>
-      <p class="desc">월을 선택하면 월별 규칙에 따라 시작일(월요일)과 주차(4/5)가 자동 적용되고, 종료일(일요일)도 자동 계산됩니다. 주말 수를 휴일로, 고정된 2026 국정 공휴일 목록(주말 제외)을 공휴로 반영합니다.</p>
+      <h1>🗓️ 26년 스케줄 계산기</h1>
+      <p class="desc">해당 월을 선택 시 규칙에 따라 시작일과 종료일, 주차가 자동 적용되며, 휴일과 공휴가 자동 계산됩니다.</p>
+      <div class="month-toolbar">
+        <select id="month_select">
+          <option value="1">26년 1월</option><option value="2">26년 2월</option><option value="3">26년 3월</option><option value="4">26년 4월</option>
+          <option value="5" selected>26년 5월</option><option value="6">26년 6월</option><option value="7">26년 7월</option><option value="8">26년 8월</option>
+          <option value="9">26년 9월</option><option value="10">26년 10월</option><option value="11">26년 11월</option><option value="12">26년 12월</option>
+        </select>
+        <button type="button" id="refresh_btn" class="mini-btn">새로고침</button>
+      </div>
     </section>
 
     <section class="card">
       <form id="schedule-form" novalidate>
         <div class="top-row">
           <h2 class="section-title" style="margin:0;">근무 기간</h2>
-          <div style="display:flex; gap:8px; align-items:center; margin-left:auto;">
-            <div class="month-box">
-              <label for="month_select" style="margin:0;">월</label>
-              <select id="month_select">
-                <option value="1">1월</option><option value="2">2월</option><option value="3">3월</option><option value="4">4월</option>
-                <option value="5" selected>5월</option><option value="6">6월</option><option value="7">7월</option><option value="8">8월</option>
-                <option value="9">9월</option><option value="10">10월</option><option value="11">11월</option><option value="12">12월</option>
-              </select>
-            </div>
-            <button type="button" id="refresh_btn" class="mini-btn">새로고침</button>
-            <div class="week-box">
-              <label for="weeks">주차</label>
-              <input type="number" id="weeks" value="4" min="4" max="5" step="1" readonly />
-            </div>
+          <div class="week-box">
+            <label for="weeks">주차</label>
+            <input type="number" id="weeks" value="4" min="4" max="5" step="1" readonly />
           </div>
         </div>
 
@@ -156,6 +155,8 @@
       document.getElementById('start_date').value = preset.start;
       document.getElementById('weeks').value = String(preset.weeks);
       syncRangeByStartAndWeeks(false);
+      const resultBox = document.getElementById('result');
+      if (resultBox) { resultBox.style.display = "none"; resultBox.innerHTML = ""; }
     };
 
     const syncRangeByStartAndWeeks = (showAlert = false) => {
@@ -354,12 +355,13 @@
         <div class="stat">최대 충족 가능<br><b>${rs.maxCovered}회</b></div>
       </div>`;
 
+      const selectedMonth = Number(document.getElementById('month_select').value);
       if (rs.ok) {
         result.className = 'result success';
-        result.innerHTML = `✅ <b>주어진 규칙으로 스케줄 작성이 가능합니다.</b>` + statHtml;
+        result.innerHTML = `✅ <b>26년 ${selectedMonth}월에는 규칙대로 스케줄 작성이 가능합니다</b>` + statHtml;
       } else {
         result.className = 'result error';
-        result.innerHTML = `❌ <b>주어진 규칙으로는 스케줄 작성이 불가능합니다.</b><br>필수 인원을 3명→2명으로 낮춰야 하는 최소 일수: <b>${rs.shortage}일</b>` + statHtml;
+        result.innerHTML = `❌ <b>26년 ${selectedMonth}월에는 규칙대로 스케줄 작성이 불가능합니다.</b><br>필수 인원을 3명→2명으로 낮춰야 하는 최소 일수: <b>${rs.shortage}일</b>` + statHtml;
       }
     });
   </script>
