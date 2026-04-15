@@ -24,7 +24,7 @@
     .section-title { margin: 8px 0 10px; font-size: 14px; color: #374151; font-weight: 700; grid-column: 1 / -1; }
     label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px; }
     input, textarea { width: 100%; border: 1px solid #d1d5db; border-radius: 10px; padding: 10px; font-size: 14px; font-family: inherit; }
-    input[readonly] { background: #f9fafb; color: #374151; }
+    input[readonly] { background: #e5e7eb; color: #374151; }
     input:focus, textarea:focus { outline: 2px solid rgba(37,99,235,.2); border-color: var(--primary); }
     .weekday-grid { display: grid; grid-template-columns: repeat(7, minmax(0,1fr)); gap: 8px; }
     .weekday-grid label { margin-bottom: 4px; text-align: center; font-size: 12px; }
@@ -37,6 +37,7 @@
     .stat { border: 1px dashed #d1d5db; border-radius: 10px; background: #fff; padding: 8px; text-align: center; color: #374151; font-size: 12px; }
     .hint { margin-top: 8px; color: var(--muted); font-size: 12px; }
     #holiday_monthly { margin-top: 6px; font-size: 12px; color: #4b5563; }
+    .hidden { display: none !important; }
     @media (max-width: 760px) {
       body { padding: 12px; }
       .card { padding: 14px; }
@@ -51,7 +52,7 @@
   <main class="wrap">
     <section class="card">
       <h1>🗓️ 스케줄 가능 여부 계산기</h1>
-      <p class="desc">시작일은 <b>월요일만</b> 허용되며, 주차(4/5)에 따라 종료일(일요일)이 자동 계산됩니다. 주말 수를 기본휴일로, 입력한 공휴일 목록(주말 제외)을 공휴로 자동 반영합니다.</p>
+      <p class="desc">시작일은 <b>월요일만</b> 허용되며, 주차(4/5)에 따라 종료일(일요일)이 자동 계산됩니다. 주말 수를 기본휴일로, 고정된 2026 국정 공휴일 목록(주말 제외)을 공휴로 자동 반영합니다.</p>
     </section>
 
     <section class="card">
@@ -76,12 +77,12 @@
           </div>
 
           <h2 class="section-title">인원 / 휴일</h2>
-          <div><label for="workers">총 인원 수</label><input type="number" id="workers" min="1" value="4" required /></div>
-          <div><label for="basic">1인당 기본휴일 수 (자동)</label><input type="number" id="basic" min="0" value="8" readonly /></div>
-          <div><label for="bonus">1인당 공휴 수 (자동)</label><input type="number" id="bonus" min="0" value="2" readonly /></div>
-          <div>
-            <label for="holiday_input">공휴일 직접 입력 (쉼표/줄바꿈, YYYY-MM-DD)</label>
-            <textarea id="holiday_input" rows="3" placeholder="예: 2026-05-05, 2026-05-25">2026-05-05, 2026-05-25</textarea>
+          <div style="grid-column: 1 / -1; text-align: left;"><label for="workers">총 인원 수</label><input type="number" id="workers" min="1" value="4" required /></div>
+          <div><label for="basic">휴일</label><input type="number" id="basic" min="0" value="8" readonly /></div>
+          <div><label for="bonus">공휴</label><input type="number" id="bonus" min="0" value="2" readonly /></div>
+          <div class="hidden">
+            <label for="holiday_input">공휴일 입력</label>
+            <textarea id="holiday_input" rows="2"></textarea>
             <div id="holiday_monthly"></div>
           </div>
         </div>
@@ -121,14 +122,7 @@
       return `${y}-${m}-${d}`;
     };
 
-    const parseHolidayInput = (raw) => {
-      const parts = raw.split(/[\s,]+/).map((x) => x.trim()).filter(Boolean);
-      const set = new Set();
-      for (const p of parts) {
-        if (/^\d{4}-\d{2}-\d{2}$/.test(p)) set.add(p);
-      }
-      return set;
-    };
+    const FIXED_HOLIDAYS_2026 = new Set(['2026-01-01','2026-02-16','2026-02-17','2026-02-18','2026-03-02','2026-05-05','2026-05-25','2026-06-03','2026-07-17','2026-08-17','2026-09-24','2026-09-25','2026-10-05','2026-10-09','2026-12-25']);
 
     const toMonday = (date) => {
       const dow = date.getUTCDay();
@@ -175,7 +169,7 @@
       const end = toDate(endValue);
       if (start > end) return;
 
-      const holidaySet = parseHolidayInput(document.getElementById('holiday_input').value);
+      const holidaySet = FIXED_HOLIDAYS_2026;
       let weekendCount = 0;
       let holidayCount = 0;
       const monthly = {};
@@ -289,12 +283,10 @@
     const form = document.getElementById('schedule-form');
     const startInput = document.getElementById('start_date');
     const weeksInput = document.getElementById('weeks');
-    const holidayInput = document.getElementById('holiday_input');
     const result = document.getElementById('result');
 
     startInput.addEventListener('change', () => syncRangeByStartAndWeeks(true));
     weeksInput.addEventListener('change', () => syncRangeByStartAndWeeks(true));
-    holidayInput.addEventListener('input', autoFillHolidayInputs);
 
     syncRangeByStartAndWeeks(false);
 
