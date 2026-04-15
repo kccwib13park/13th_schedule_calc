@@ -1,155 +1,387 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>스케줄 가능 여부 계산기</title>
-    <style>
-        body {
-            font-family: 'Pretendard', 'Malgun Gothic', sans-serif;
-            background-color: #f3f4f6;
-            display: flex;
-            justify-content: center;
-            padding: 15px;
-            margin: 0;
-            box-sizing: border-box;
-        }
-        .container {
-            background-color: white;
-            padding: 25px 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            max-width: 400px;
-            width: 100%;
-            box-sizing: border-box;
-        }
-        h2 { text-align: center; color: #1f2937; margin-top: 0; font-size: 20px; }
-        .section-title { font-size: 15px; font-weight: bold; color: #4b5563; margin-top: 25px; margin-bottom: 15px; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; }
-        .input-group { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-        .input-group label { font-size: 14px; color: #374151; flex: 1; }
-        .input-group input[type="number"] { width: 60px; padding: 8px; text-align: center; border: 1px solid #d1d5db; border-radius: 6px; font-size: 15px; }
-        .input-group input[type="date"] { width: 130px; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; font-family: inherit; }
-        input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
-        button { width: 100%; padding: 14px; background-color: #3b82f6; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 25px; transition: background-color 0.2s; -webkit-tap-highlight-color: transparent; }
-        button:hover { background-color: #2563eb; }
-        #result { margin-top: 20px; padding: 15px; border-radius: 8px; display: none; font-size: 14px; line-height: 1.6; word-break: keep-all; }
-        .success { background-color: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
-        .error { background-color: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
-        .summary { margin-top: 10px; font-size: 13px; color: #6b7280; border-top: 1px dashed #ccc; padding-top: 10px;}
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>스케줄 가능 여부 계산기</title>
+  <style>
+    :root {
+      --bg: #f3f5fb;
+      --card: #fff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --line: #e5e7eb;
+      --primary: #2563eb;
+      --ok-bg: #ecfdf5;
+      --ok-fg: #065f46;
+      --ok-line: #a7f3d0;
+      --bad-bg: #fef2f2;
+      --bad-fg: #991b1b;
+      --bad-line: #fecaca;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Pretendard, "Malgun Gothic", system-ui, sans-serif;
+      background: linear-gradient(180deg, #eef2ff 0%, var(--bg) 160px, var(--bg) 100%);
+      color: var(--text);
+      padding: 18px;
+    }
+    .wrap {
+      max-width: 860px;
+      margin: 0 auto;
+      display: grid;
+      gap: 16px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+      padding: 18px;
+    }
+    h1 {
+      margin: 0;
+      font-size: clamp(20px, 3vw, 28px);
+    }
+    .desc { margin: 10px 0 0; color: var(--muted); font-size: 14px; line-height: 1.6; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .section-title {
+      margin: 8px 0 10px;
+      font-size: 14px;
+      color: #374151;
+      font-weight: 700;
+      grid-column: 1 / -1;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 6px;
+    }
+    input {
+      width: 100%;
+      border: 1px solid #d1d5db;
+      border-radius: 10px;
+      padding: 10px;
+      font-size: 15px;
+      font-family: inherit;
+      background: #fff;
+    }
+    input:focus {
+      outline: 2px solid rgba(37, 99, 235, 0.2);
+      border-color: var(--primary);
+    }
+    .weekday-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .weekday-grid label { margin-bottom: 4px; text-align: center; font-size: 12px; }
+    .btn {
+      margin-top: 14px;
+      width: 100%;
+      border: 0;
+      border-radius: 10px;
+      padding: 12px;
+      background: var(--primary);
+      color: #fff;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn:hover { background: #1d4ed8; }
+    .result { display: none; margin-top: 12px; border-radius: 12px; border: 1px solid; padding: 14px; line-height: 1.6; }
+    .result.success { background: var(--ok-bg); color: var(--ok-fg); border-color: var(--ok-line); }
+    .result.error { background: var(--bad-bg); color: var(--bad-fg); border-color: var(--bad-line); }
+    .stats {
+      margin-top: 10px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .stat {
+      border: 1px dashed #d1d5db;
+      border-radius: 10px;
+      background: #fff;
+      padding: 8px;
+      text-align: center;
+      color: #374151;
+      font-size: 12px;
+    }
+    .hint {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    @media (max-width: 760px) {
+      body { padding: 12px; }
+      .card { padding: 14px; }
+      .grid { grid-template-columns: 1fr; }
+      .weekday-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .stats { grid-template-columns: 1fr; }
+    }
+  </style>
 </head>
 <body>
+  <main class="wrap">
+    <section class="card">
+      <h1>🗓️ 스케줄 가능 여부 계산기</h1>
+      <p class="desc">
+        "주당 기본휴일 1~2회 + 보너스휴일 제한 없음" 규칙을 반영해,
+        기간 전체에서 실제로 스케줄이 가능한지 계산합니다.
+        불가능하면 <b>필수 인원을 3명→2명으로 낮춰야 하는 최소 일수</b>를 보여줍니다.
+      </p>
+    </section>
 
-<div class="container">
-    <h2>🗓️ 스케줄 가능 여부 계산기</h2>
+    <section class="card">
+      <form id="schedule-form" novalidate>
+        <div class="grid">
+          <h2 class="section-title">근무 기간</h2>
+          <div>
+            <label for="start_date">시작일</label>
+            <input type="date" id="start_date" value="2026-05-04" required />
+          </div>
+          <div>
+            <label for="end_date">종료일</label>
+            <input type="date" id="end_date" value="2026-05-31" required />
+          </div>
 
-    <div class="section-title">근무 기간 설정</div>
-    <div class="input-group">
-        <label>시작일</label>
-        <input type="date" id="start_date" value="2026-05-04">
-    </div>
-    <div class="input-group">
-        <label>종료일</label>
-        <input type="date" id="end_date" value="2026-05-31">
-    </div>
+          <h2 class="section-title">인원 / 휴일</h2>
+          <div><label for="workers">총 인원 수</label><input type="number" id="workers" min="1" value="4" required /></div>
+          <div><label for="basic">1인당 기본휴일 수</label><input type="number" id="basic" min="0" value="8" required /></div>
+          <div><label for="bonus">1인당 보너스휴일 수</label><input type="number" id="bonus" min="0" value="2" required /></div>
+        </div>
 
-    <div class="section-title">인원 및 휴일 설정</div>
-    <div class="input-group"><label>총 인원 수 (명)</label><input type="number" id="workers" value="4"></div>
-    <div class="input-group"><label>1인당 휴일 수</label><input type="number" id="basic" value="8"></div>
-    <div class="input-group"><label>1인당 공휴 수</label><input type="number" id="bonus" value="2"></div>
+        <h2 class="section-title">요일별 필수 근무 인원</h2>
+        <div class="weekday-grid">
+          <div><label for="mon">월</label><input type="number" id="mon" min="0" value="3" /></div>
+          <div><label for="tue">화</label><input type="number" id="tue" min="0" value="3" /></div>
+          <div><label for="wed">수</label><input type="number" id="wed" min="0" value="3" /></div>
+          <div><label for="thu">목</label><input type="number" id="thu" min="0" value="3" /></div>
+          <div><label for="fri">금</label><input type="number" id="fri" min="0" value="3" /></div>
+          <div><label for="sat">토</label><input type="number" id="sat" min="0" value="3" /></div>
+          <div><label for="sun">일</label><input type="number" id="sun" min="0" value="1" /></div>
+        </div>
 
-    <div class="section-title">요일별 필수 근무 인원</div>
-    <div class="input-group"><label>월요일</label><input type="number" id="mon" value="3"></div>
-    <div class="input-group"><label>화요일</label><input type="number" id="tue" value="3"></div>
-    <div class="input-group"><label>수요일</label><input type="number" id="wed" value="3"></div>
-    <div class="input-group"><label>목요일</label><input type="number" id="thu" value="3"></div>
-    <div class="input-group"><label>금요일</label><input type="number" id="fri" value="3"></div>
-    <div class="input-group"><label>토요일</label><input type="number" id="sat" value="3"></div>
-    <div class="input-group"><label>일요일</label><input type="number" id="sun" value="1"></div>
+        <button type="submit" class="btn">계산하기</button>
+        <div id="result" class="result"></div>
+        <p class="hint">* 시작일 변경 시 종료일은 해당 월 마지막 일요일(불가 시 다음 달 마지막 일요일)로 자동 설정됩니다. 기본휴일은 주당 1~2회 반드시 사용, 보너스휴일은 주당 제한 없이 사용한다고 가정합니다.</p>
+      </form>
+    </section>
+  </main>
 
-    <button onclick="calculate()">계산하기</button>
+  <script>
+    const toDate = (v) => {
+      const [y, m, d] = v.split('-').map(Number);
+      return new Date(Date.UTC(y, m - 1, d));
+    };
+    const addDays = (date, n) => {
+      const x = new Date(date);
+      x.setUTCDate(x.getUTCDate() + n);
+      return x;
+    };
+    const lastSundayOfMonthUTC = (year, monthIndex0) => {
+      const lastDay = new Date(Date.UTC(year, monthIndex0 + 1, 0));
+      const offset = lastDay.getUTCDay();
+      lastDay.setUTCDate(lastDay.getUTCDate() - offset);
+      return lastDay;
+    };
+    const autoAdjustEndDate = () => {
+      const startInput = document.getElementById('start_date');
+      const endInput = document.getElementById('end_date');
+      if (!startInput.value) return;
 
-    <div id="result"></div>
-</div>
+      const start = toDate(startInput.value);
+      const y = start.getUTCFullYear();
+      const m = start.getUTCMonth();
 
-<script>
-    function calculate() {
-        try {
-            // 1. 날짜 가져오기 (빈칸 방지)
-            const startDateStr = document.getElementById('start_date').value;
-            const endDateStr = document.getElementById('end_date').value;
-            
-            if (!startDateStr || !endDateStr) {
-                alert("달력에서 시작일과 종료일을 모두 선택해주세요.");
-                return;
-            }
+      let target = lastSundayOfMonthUTC(y, m);
+      if (target < start) {
+        const next = new Date(Date.UTC(y, m + 1, 1));
+        target = lastSundayOfMonthUTC(next.getUTCFullYear(), next.getUTCMonth());
+      }
 
-            // PC 브라우저별 시간대 차이(Timezone) 버그 방지를 위해 -를 /로 치환
-            const startDate = new Date(startDateStr.replace(/-/g, '/'));
-            const endDate = new Date(endDateStr.replace(/-/g, '/'));
-            endDate.setHours(23, 59, 59); // 종료일을 그 날의 끝 시간으로 맞춰 오차 방지
+      const yy = target.getUTCFullYear();
+      const mm = String(target.getUTCMonth() + 1).padStart(2, '0');
+      const dd = String(target.getUTCDate()).padStart(2, '0');
+      endInput.value = `${yy}-${mm}-${dd}`;
+    };
 
-            if (startDate > endDate) {
-                alert("종료일이 시작일보다 빠를 수 없습니다.");
-                return;
-            }
-
-            // 2. 선택된 기간 내 요일별 개수 계산
-            let current = new Date(startDate);
-            let dayCounts = [0, 0, 0, 0, 0, 0, 0]; // 0:일 ~ 6:토
-            let totalDays = 0;
-
-            while (current <= endDate) {
-                dayCounts[current.getDay()]++;
-                current.setDate(current.getDate() + 1);
-                totalDays++;
-            }
-
-            // 3. 인원 및 휴일 설정 가져오기 (빈칸일 경우 0으로 자동 처리)
-            const workers = Number(document.getElementById('workers').value) || 0;
-            const basic = Number(document.getElementById('basic').value) || 0;
-            const bonus = Number(document.getElementById('bonus').value) || 0;
-
-            // 4. 요일별 필수 인원 가져오기
-            const req = [
-                Number(document.getElementById('sun').value) || 0,
-                Number(document.getElementById('mon').value) || 0,
-                Number(document.getElementById('tue').value) || 0,
-                Number(document.getElementById('wed').value) || 0,
-                Number(document.getElementById('thu').value) || 0,
-                Number(document.getElementById('fri').value) || 0,
-                Number(document.getElementById('sat').value) || 0
-            ];
-
-            // 5. 총 계산 수행
-            let totalReqShifts = 0;
-            for (let i = 0; i < 7; i++) {
-                totalReqShifts += dayCounts[i] * req[i];
-            }
-
-            const totalHolidays = basic + bonus;
-            const totalAvailShifts = workers * (totalDays - totalHolidays);
-            const diff = totalReqShifts - totalAvailShifts;
-
-            // 6. 화면에 결과 출력
-            const resultDiv = document.getElementById('result');
-            resultDiv.style.display = 'block';
-
-            let summaryHtml = `<div class="summary">총 ${totalDays}일 (필요 근무: ${totalReqShifts}회 / 가능 근무: ${totalAvailShifts}회)</div>`;
-
-            if (diff <= 0) {
-                resultDiv.className = 'success';
-                resultDiv.innerHTML = `✅ <b>스케줄 작성이 가능합니다!</b><br><br>남는 여유 근무 횟수: <b>${Math.abs(diff)}회</b>` + summaryHtml;
-            } else {
-                resultDiv.className = 'error';
-                resultDiv.innerHTML = `❌ <b>스케줄 작성이 불가능합니다.</b><br><br>필요한 근무가 <b>${diff}회</b> 부족합니다.<br>필수 근무 인원을 줄여야 하는 날은 최소 <b>${diff}일</b>입니다.` + summaryHtml;
-            }
-        } catch (e) {
-            console.error("오류 발생:", e);
-            alert("계산 중 알 수 없는 오류가 발생했습니다.");
-        }
+    function buildPeriod(startDate, endDate) {
+      const days = [];
+      let cur = new Date(startDate);
+      while (cur <= endDate) {
+        const dow = cur.getUTCDay(); // 0:일~6:토
+        days.push({ date: new Date(cur), dow, isWeekEnd: dow === 0 || cur.getTime() === endDate.getTime() });
+        cur = addDays(cur, 1);
+      }
+      return days;
     }
-</script>
 
+    function validateInput(cfg, weeksCount, totalDays) {
+      if (!Number.isInteger(cfg.workers) || cfg.workers < 1) return '총 인원 수는 1 이상 정수여야 합니다.';
+      if (cfg.basic < 0 || cfg.bonus < 0) return '휴일 수는 0 이상이어야 합니다.';
+      if (cfg.basic < weeksCount || cfg.basic > weeksCount * 2) {
+        return `기본휴일 ${cfg.basic}일은 기간 내 ${weeksCount}주 규칙(주당 1~2회)과 맞지 않습니다. (${weeksCount}~${weeksCount * 2}일 필요)`;
+      }
+      if (cfg.basic + cfg.bonus > totalDays) return '1인당 전체 휴일(기본+보너스)이 기간 일수보다 많습니다.';
+      if (cfg.required.some((n) => n < 0 || !Number.isInteger(n))) return '요일별 필수 인원은 0 이상 정수여야 합니다.';
+      if (cfg.required.some((n) => n > cfg.workers)) return '요일별 필수 인원은 총 인원 수를 초과할 수 없습니다.';
+      return '';
+    }
+
+    function analyzeSchedule(cfg) {
+      const period = buildPeriod(cfg.startDate, cfg.endDate);
+      const totalDays = period.length;
+      const totalReq = period.reduce((acc, d) => acc + cfg.required[d.dow], 0);
+      const weeksCount = period.filter((d) => d.isWeekEnd).length;
+
+      const inputError = validateInput(cfg, weeksCount, totalDays);
+      if (inputError) {
+        return { ok: false, inputError, totalDays, totalReq, maxCovered: 0, shortage: totalReq, weeksCount };
+      }
+
+      const totalOff = cfg.workers * (cfg.basic + cfg.bonus);
+      const totalBasic = cfg.workers * cfg.basic;
+      if (totalOff > cfg.workers * totalDays) {
+        return {
+          ok: false,
+          inputError: '총 휴일 수가 전체 배치 가능한 인원-일수를 초과합니다.',
+          totalDays,
+          totalReq,
+          maxCovered: 0,
+          shortage: totalReq,
+          weeksCount
+        };
+      }
+
+      // DP state: dayIdx, usedOff, currentWeekOff, completedWeekCap -> 최소 shortage
+      // completedWeekCap: 완료된 주들에서 배치 가능한 basic 휴일 최대치 합 (sum of min(2*workers, weekOff)).
+      let states = new Map();
+      states.set('0|0|0', 0); // usedOff|weekOff|cap => minShortage
+
+      const upsert = (map, key, value) => {
+        const prev = map.get(key);
+        if (prev === undefined || value < prev) map.set(key, value);
+      };
+
+      for (let dayIdx = 0; dayIdx < period.length; dayIdx++) {
+        const day = period[dayIdx];
+        const slack = cfg.workers - cfg.required[day.dow];
+        const nextStates = new Map();
+
+        for (const [key, curShortage] of states) {
+          const [usedOff, weekOff, cap] = key.split('|').map(Number);
+
+          for (let off = 0; off <= cfg.workers; off++) {
+            const nextUsedOff = usedOff + off;
+            if (nextUsedOff > totalOff) continue;
+
+            let nextWeekOff = weekOff + off;
+            let nextCap = cap;
+
+            if (day.isWeekEnd) {
+              if (nextWeekOff < cfg.workers) continue; // 주당 기본휴일 최소치(인원당 1일) 실현 불가
+              nextCap += Math.min(cfg.workers * 2, nextWeekOff);
+              nextWeekOff = 0;
+            }
+
+            const dayShortage = Math.max(0, off - slack);
+            const shortage = curShortage + dayShortage;
+            upsert(nextStates, `${nextUsedOff}|${nextWeekOff}|${nextCap}`, shortage);
+          }
+        }
+
+        states = nextStates;
+      }
+
+      let minShortage = Number.POSITIVE_INFINITY;
+
+      for (const [key, shortage] of states) {
+        const [usedOff, weekOff, cap] = key.split('|').map(Number);
+        if (usedOff !== totalOff) continue;
+        if (weekOff !== 0) continue;
+        if (cap < totalBasic) continue; // 주당 최대 2회 제약 안에서 basic 총량 배치 불가
+        if (shortage < minShortage) minShortage = shortage;
+      }
+
+      if (!Number.isFinite(minShortage)) {
+        return { ok: false, inputError: '주당 기본휴일(1~2회) 제약을 만족하는 배치가 존재하지 않습니다.', totalDays, totalReq, maxCovered: 0, shortage: totalReq, weeksCount };
+      }
+
+      const shortage = Math.max(0, minShortage);
+      const maxCovered = totalReq - shortage;
+      const ok = shortage === 0;
+
+      return { ok, totalDays, totalReq, maxCovered, shortage, weeksCount, inputError: '' };
+    }
+
+    const form = document.getElementById('schedule-form');
+    const result = document.getElementById('result');
+    const startInput = document.getElementById('start_date');
+
+    startInput.addEventListener('change', autoAdjustEndDate);
+    autoAdjustEndDate();
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const startStr = document.getElementById('start_date').value;
+      const endStr = document.getElementById('end_date').value;
+      if (!startStr || !endStr) return alert('시작일/종료일을 입력하세요.');
+
+      const startDate = toDate(startStr);
+      const endDate = toDate(endStr);
+      if (startDate > endDate) return alert('종료일이 시작일보다 빠를 수 없습니다.');
+
+      const cfg = {
+        startDate,
+        endDate,
+        workers: Number(document.getElementById('workers').value),
+        basic: Number(document.getElementById('basic').value),
+        bonus: Number(document.getElementById('bonus').value),
+        required: [
+          Number(document.getElementById('sun').value),
+          Number(document.getElementById('mon').value),
+          Number(document.getElementById('tue').value),
+          Number(document.getElementById('wed').value),
+          Number(document.getElementById('thu').value),
+          Number(document.getElementById('fri').value),
+          Number(document.getElementById('sat').value)
+        ]
+      };
+
+      const rs = analyzeSchedule(cfg);
+      result.style.display = 'block';
+
+      if (rs.inputError) {
+        result.className = 'result error';
+        result.innerHTML = `❌ <b>입력 조건이 규칙과 충돌합니다.</b><br>${rs.inputError}`;
+        return;
+      }
+
+      const statHtml = `
+        <div class="stats">
+          <div class="stat">기간 일수<br><b>${rs.totalDays}일</b></div>
+          <div class="stat">필요 근무 총합<br><b>${rs.totalReq}회</b></div>
+          <div class="stat">최대 충족 가능<br><b>${rs.maxCovered}회</b></div>
+        </div>
+      `;
+
+      if (rs.ok) {
+        result.className = 'result success';
+        result.innerHTML = `✅ <b>주어진 규칙으로 스케줄 작성이 가능합니다.</b><br>주당 기본휴일 1~2회 제약까지 모두 만족합니다.` + statHtml;
+      } else {
+        result.className = 'result error';
+        result.innerHTML = `❌ <b>주어진 규칙으로는 스케줄 작성이 불가능합니다.</b><br>필수 인원을 3명→2명으로 낮춰야 하는 최소 일수: <b>${rs.shortage}일</b>` + statHtml;
+      }
+    });
+  </script>
 </body>
 </html>
