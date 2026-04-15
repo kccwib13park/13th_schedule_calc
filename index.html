@@ -171,7 +171,7 @@
 
         <button type="submit" class="btn">계산하기</button>
         <div id="result" class="result"></div>
-        <p class="hint">* 시작일 변경 시 종료일은 해당 월 마지막 일요일(불가 시 다음 달 마지막 일요일)로 자동 설정됩니다. 기본휴일은 주당 1~2회 반드시 사용, 보너스휴일은 주당 제한 없이 사용한다고 가정합니다.</p>
+        <p class="hint">* 시작일 변경 시 종료일은 해당 월 말일이 속한 주의 토요일(불가 시 다음 달 말일이 속한 주의 토요일)로 자동 설정됩니다. 기본휴일은 주당 1~2회 반드시 사용, 보너스휴일은 주당 제한 없이 사용한다고 가정합니다.</p>
       </form>
     </section>
   </main>
@@ -186,11 +186,11 @@
       x.setUTCDate(x.getUTCDate() + n);
       return x;
     };
-    const lastSundayOfMonthUTC = (year, monthIndex0) => {
-      const lastDay = new Date(Date.UTC(year, monthIndex0 + 1, 0));
-      const offset = lastDay.getUTCDay();
-      lastDay.setUTCDate(lastDay.getUTCDate() - offset);
-      return lastDay;
+    const endOfWeekSaturdayUTC = (date) => {
+      const out = new Date(date);
+      const offset = (6 - out.getUTCDay() + 7) % 7;
+      out.setUTCDate(out.getUTCDate() + offset);
+      return out;
     };
     const autoAdjustEndDate = () => {
       const startInput = document.getElementById('start_date');
@@ -201,10 +201,12 @@
       const y = start.getUTCFullYear();
       const m = start.getUTCMonth();
 
-      let target = lastSundayOfMonthUTC(y, m);
+      const monthEnd = new Date(Date.UTC(y, m + 1, 0));
+      let target = endOfWeekSaturdayUTC(monthEnd);
+
       if (target < start) {
-        const next = new Date(Date.UTC(y, m + 1, 1));
-        target = lastSundayOfMonthUTC(next.getUTCFullYear(), next.getUTCMonth());
+        const nextMonthEnd = new Date(Date.UTC(y, m + 2, 0));
+        target = endOfWeekSaturdayUTC(nextMonthEnd);
       }
 
       const yy = target.getUTCFullYear();
@@ -218,7 +220,7 @@
       let cur = new Date(startDate);
       while (cur <= endDate) {
         const dow = cur.getUTCDay(); // 0:일~6:토
-        days.push({ date: new Date(cur), dow, isWeekEnd: dow === 0 || cur.getTime() === endDate.getTime() });
+        days.push({ date: new Date(cur), dow, isWeekEnd: dow === 6 || cur.getTime() === endDate.getTime() });
         cur = addDays(cur, 1);
       }
       return days;
