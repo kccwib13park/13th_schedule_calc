@@ -79,8 +79,9 @@
 
         <div class="grid">
           <div>
-            <label for="start_date">시작일 (자동)</label>
-            <input type="date" id="start_date" value="2026-05-04" required readonly />
+            <label for="start_date_display">시작일 (자동, 월요일)</label>
+            <input type="text" id="start_date_display" readonly />
+            <input type="hidden" id="start_date" value="2026-05-04" />
           </div>
           <div>
             <label for="end_date_display">종료일 (자동, 일요일)</label>
@@ -101,18 +102,18 @@
 
         <h2 class="section-title">요일별 필수 근무 인원</h2>
         <div class="weekday-grid">
-          <div><label for="mon">월</label><input type="number" id="mon" min="0" value="3" /></div>
-          <div><label for="tue">화</label><input type="number" id="tue" min="0" value="3" /></div>
-          <div><label for="wed">수</label><input type="number" id="wed" min="0" value="3" /></div>
-          <div><label for="thu">목</label><input type="number" id="thu" min="0" value="3" /></div>
-          <div><label for="fri">금</label><input type="number" id="fri" min="0" value="3" /></div>
-          <div><label for="sat">토</label><input type="number" id="sat" min="0" value="3" /></div>
-          <div><label for="sun">일</label><input type="number" id="sun" min="0" value="1" /></div>
+          <div><label for="mon">월</label><select id="mon"></select></div>
+          <div><label for="tue">화</label><select id="tue"></select></div>
+          <div><label for="wed">수</label><select id="wed"></select></div>
+          <div><label for="thu">목</label><select id="thu"></select></div>
+          <div><label for="fri">금</label><select id="fri"></select></div>
+          <div><label for="sat">토</label><select id="sat"></select></div>
+          <div><label for="sun">일</label><select id="sun"></select></div>
         </div>
 
         <button type="submit" class="btn">계산하기</button>
-        <div id="result" class="result"></div>
         <p class="hint">* 계산을 희망하는 월을 고른 후 계산하기를 누르면 결과가 나옵니다.</p>
+        <div id="result" class="result"></div>
       </form>
     </section>
   </main>
@@ -132,6 +133,10 @@
       const m = String(date.getUTCMonth() + 1).padStart(2, '0');
       const d = String(date.getUTCDate()).padStart(2, '0');
       return `${y}-${m}-${d}`;
+    };
+    const formatDateWithWeekday = (date) => {
+      const days = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
+      return `${formatDateUTC(date)} (${days[date.getUTCDay()]})`;
     };
 
     const FIXED_HOLIDAYS_2026 = new Set(['2026-01-01','2026-02-16','2026-02-17','2026-02-18','2026-03-02','2026-05-05','2026-05-25','2026-06-03','2026-07-17','2026-08-17','2026-09-24','2026-09-25','2026-10-05','2026-10-09','2026-12-25']);
@@ -153,6 +158,7 @@
       const preset = MONTH_PRESETS_2026[month];
       if (!preset) return;
       document.getElementById('start_date').value = preset.start;
+      document.getElementById('start_date_display').value = formatDateWithWeekday(toDate(preset.start));
       document.getElementById('weeks').value = String(preset.weeks);
       syncRangeByStartAndWeeks(false);
       const resultBox = document.getElementById('result');
@@ -161,6 +167,7 @@
 
     const syncRangeByStartAndWeeks = (showAlert = false) => {
       const startInput = document.getElementById('start_date');
+      const startDisplay = document.getElementById('start_date_display');
       const endInput = document.getElementById('end_date');
       const endDisplay = document.getElementById('end_date_display');
       const weeksInput = document.getElementById('weeks');
@@ -182,9 +189,10 @@
         weeksInput.value = '4';
       }
 
+      startDisplay.value = formatDateWithWeekday(start);
       const end = addDays(start, weeks * 7 - 1); // 반드시 일요일
       endInput.value = formatDateUTC(end);
-      endDisplay.value = `${formatDateUTC(end)} (일요일)`;
+      endDisplay.value = formatDateWithWeekday(end);
 
       autoFillHolidayInputs();
     };
@@ -224,6 +232,35 @@
 
       const monthlyText = Object.keys(monthly).sort().map((m) => `${m}: ${monthly[m]}일`).join(' / ') || '월별 공휴일(주말 제외): 0일';
       document.getElementById('holiday_monthly').textContent = `월별 공휴일(주말 제외): ${monthlyText}`;
+    };
+
+
+    const refreshRequiredOptions = () => {
+      const workers = Number(document.getElementById('workers').value) || 0;
+      const max = Math.max(1, workers - 1);
+      const ids = ['mon','tue','wed','thu','fri','sat','sun'];
+      for (const id of ids) {
+        const el = document.getElementById(id);
+        const prev = Number(el.value) || 1;
+        el.innerHTML = '';
+        for (let n = 1; n <= max; n++) {
+          const opt = document.createElement('option');
+          opt.value = String(n);
+          opt.textContent = String(n);
+          el.appendChild(opt);
+        }
+        el.value = String(Math.min(Math.max(prev,1), max));
+      }
+      if (document.getElementById('sun').value === '' || Number(document.getElementById('sun').value) > max) {
+        document.getElementById('sun').value = '1';
+      }
+      if (workers >= 4) {
+        for (const id of ['mon','tue','wed','thu','fri','sat']) {
+          const preferred = Math.min(3, max);
+          document.getElementById(id).value = String(preferred);
+        }
+        document.getElementById('sun').value = '1';
+      }
     };
 
     function buildPeriod(startDate, endDate) {
@@ -313,10 +350,13 @@
     const monthSelect = document.getElementById('month_select');
     const refreshBtn = document.getElementById('refresh_btn');
     const result = document.getElementById('result');
+    const workersInput = document.getElementById('workers');
 
     monthSelect.addEventListener('change', applyMonthPreset);
     refreshBtn.addEventListener('click', () => window.location.reload());
+    workersInput.addEventListener('change', refreshRequiredOptions);
 
+    refreshRequiredOptions();
     applyMonthPreset();
 
     form.addEventListener('submit', (e) => {
