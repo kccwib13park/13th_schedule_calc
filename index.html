@@ -25,6 +25,7 @@
     .month-toolbar { display:grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
     .month-toolbar select, .month-toolbar .mini-btn { width: 100%; height: 44px; font-size: 16px; }
     .grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
+    .staff-row { display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; grid-column: 1 / -1; }
     .section-title { margin: 8px 0 10px; font-size: 14px; color: #374151; font-weight: 700; grid-column: 1 / -1; }
     label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px; }
     input, textarea { width: 100%; border: 1px solid #d1d5db; border-radius: 10px; padding: 10px; font-size: 14px; font-family: inherit; }
@@ -45,7 +46,7 @@
     @media (max-width: 760px) {
       body { padding: 12px; }
       .card { padding: 14px; }
-      .grid, .weekday-grid { grid-template-columns: 1fr; }
+      .grid, .weekday-grid, .staff-row { grid-template-columns: 1fr; }
       .top-row { flex-direction: column; align-items: stretch; }
       .week-box { width: 100%; justify-content: flex-end; }
       .stats { grid-template-columns: 1fr; }
@@ -89,8 +90,12 @@
             <input type="hidden" id="end_date" />
           </div>
 
-          <h2 class="section-title">인원 / 휴일</h2>
-          <div style="grid-column: 1 / -1; text-align: left;"><label for="workers">총 인원 수</label><input type="number" id="workers" min="1" value="4" required /></div>
+          <h2 class="section-title">인원 / 휴일 / 근무 필수 인원</h2>
+          <div class="staff-row">
+            <div><label for="workers">총 인원 수</label><input type="number" id="workers" min="1" value="4" required /></div>
+            <div><label for="mon_sat">월~토</label><select id="mon_sat"></select></div>
+            <div><label for="sun">일</label><select id="sun"></select></div>
+          </div>
           <div><label for="basic">휴일</label><input type="number" id="basic" min="0" value="8" readonly /></div>
           <div><label for="bonus">공휴</label><input type="number" id="bonus" min="0" value="2" readonly /></div>
           <div class="hidden">
@@ -98,17 +103,6 @@
             <textarea id="holiday_input" rows="2"></textarea>
             <div id="holiday_monthly"></div>
           </div>
-        </div>
-
-        <h2 class="section-title">요일별 필수 근무 인원</h2>
-        <div class="weekday-grid">
-          <div><label for="mon">월</label><select id="mon"></select></div>
-          <div><label for="tue">화</label><select id="tue"></select></div>
-          <div><label for="wed">수</label><select id="wed"></select></div>
-          <div><label for="thu">목</label><select id="thu"></select></div>
-          <div><label for="fri">금</label><select id="fri"></select></div>
-          <div><label for="sat">토</label><select id="sat"></select></div>
-          <div><label for="sun">일</label><select id="sun"></select></div>
         </div>
 
         <button type="submit" class="btn">계산하기</button>
@@ -238,7 +232,7 @@
     const refreshRequiredOptions = () => {
       const workers = Number(document.getElementById('workers').value) || 0;
       const max = Math.max(1, workers - 1);
-      const ids = ['mon','tue','wed','thu','fri','sat','sun'];
+      const ids = ['mon_sat','sun'];
       for (const id of ids) {
         const el = document.getElementById(id);
         const prev = Number(el.value) || 1;
@@ -254,13 +248,9 @@
       if (document.getElementById('sun').value === '' || Number(document.getElementById('sun').value) > max) {
         document.getElementById('sun').value = '1';
       }
-      if (workers >= 4) {
-        for (const id of ['mon','tue','wed','thu','fri','sat']) {
-          const preferred = Math.min(3, max);
-          document.getElementById(id).value = String(preferred);
-        }
-        document.getElementById('sun').value = '1';
-      }
+      const preferredMonSat = workers >= 4 ? Math.min(3, max) : 1;
+      document.getElementById('mon_sat').value = String(preferredMonSat);
+      document.getElementById('sun').value = '1';
     };
 
     function buildPeriod(startDate, endDate) {
@@ -371,12 +361,12 @@
         bonus: Number(document.getElementById('bonus').value),
         required: [
           Number(document.getElementById('sun').value),
-          Number(document.getElementById('mon').value),
-          Number(document.getElementById('tue').value),
-          Number(document.getElementById('wed').value),
-          Number(document.getElementById('thu').value),
-          Number(document.getElementById('fri').value),
-          Number(document.getElementById('sat').value)
+          Number(document.getElementById('mon_sat').value),
+          Number(document.getElementById('mon_sat').value),
+          Number(document.getElementById('mon_sat').value),
+          Number(document.getElementById('mon_sat').value),
+          Number(document.getElementById('mon_sat').value),
+          Number(document.getElementById('mon_sat').value)
         ]
       };
 
