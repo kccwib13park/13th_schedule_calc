@@ -232,25 +232,28 @@
     const refreshRequiredOptions = () => {
       const workers = Number(document.getElementById('workers').value) || 0;
       const max = Math.max(1, workers - 1);
-      const ids = ['mon_sat','sun'];
+      const ids = ['mon_sat', 'sun'];
+
       for (const id of ids) {
         const el = document.getElementById(id);
-        const prev = Number(el.value) || 1;
         el.innerHTML = '';
+
         for (let n = 1; n <= max; n++) {
           const opt = document.createElement('option');
           opt.value = String(n);
           opt.textContent = String(n);
           el.appendChild(opt);
         }
-        el.value = String(Math.min(Math.max(prev,1), max));
       }
-      if (document.getElementById('sun').value === '' || Number(document.getElementById('sun').value) > max) {
-        document.getElementById('sun').value = '1';
-      }
-      const preferredMonSat = workers >= 4 ? Math.min(3, max) : 1;
+
+      // 기본 최소 근무자:
+      // 월~토 4명, 일요일 2명
+      // 단, 총 인원 수가 적으면 선택 가능한 최대값으로 자동 조정
+      const preferredMonSat = Math.min(4, max);
+      const preferredSun = Math.min(2, max);
+
       document.getElementById('mon_sat').value = String(preferredMonSat);
-      document.getElementById('sun').value = '1';
+      document.getElementById('sun').value = String(preferredSun);
     };
 
     function buildPeriod(startDate, endDate) {
