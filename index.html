@@ -25,7 +25,10 @@
           </div>
         </div>
 
-        <div class="month-control">
+        <div class="month-navigator" id="month_swipe_area">
+          <button type="button" id="prev_month" class="month-nav-button" aria-label="이전 달">
+            <span aria-hidden="true">‹</span>
+          </button>
           <div class="field-group">
             <label for="month_select">2026년 월 선택</label>
             <select id="month_select">
@@ -43,6 +46,12 @@
               <option value="12">12월</option>
             </select>
           </div>
+          <button type="button" id="next_month" class="month-nav-button" aria-label="다음 달">
+            <span aria-hidden="true">›</span>
+          </button>
+        </div>
+        <div class="month-reset-row">
+          <p>버튼·선택 상자 또는 좌우 스와이프로 변경할 수 있습니다.</p>
           <button type="button" id="refresh_btn" class="secondary-button">초기값 복원</button>
         </div>
       </section>
@@ -86,9 +95,13 @@
         <div class="staffing-fields">
           <div class="field-group workers-field">
             <label for="workers">총인원</label>
-            <div class="number-field">
-              <input type="number" id="workers" min="1" step="1" value="6" inputmode="numeric" autocomplete="off" required />
-              <span aria-hidden="true">명</span>
+            <div class="number-stepper">
+              <button type="button" id="workers_decrement" aria-label="총인원 1명 줄이기">−</button>
+              <div class="number-field">
+                <input type="number" id="workers" min="1" step="1" value="6" inputmode="numeric" autocomplete="off" required />
+                <span aria-hidden="true">명</span>
+              </div>
+              <button type="button" id="workers_increment" aria-label="총인원 1명 늘리기">+</button>
             </div>
           </div>
           <div class="field-group">
@@ -100,6 +113,7 @@
             <select id="sun"></select>
           </div>
         </div>
+        <p id="adjustment_notice" class="adjustment-notice" role="status" aria-live="polite"></p>
       </section>
 
       <section class="calculator-section" aria-labelledby="holiday-heading">
@@ -125,7 +139,7 @@
       </section>
 
       <div class="action-area">
-        <button type="submit" class="primary-button">스케줄 가능 여부 계산</button>
+        <button type="submit" id="calculate_button" class="primary-button">스케줄 가능 여부 계산</button>
         <p class="form-hint">입력 조건을 바꾸면 계산 버튼을 다시 눌러 결과를 갱신하세요.</p>
       </div>
 

@@ -44,6 +44,19 @@ export const toMonday = (date) => {
 
 export const getMonthPreset = (month) => MONTH_PRESETS_2026[Number(month)] ?? null;
 
+export const getAdjacentMonth = (month, direction) => {
+  const current = Number(month);
+  if (!Number.isInteger(current) || current < 1 || current > 12) return null;
+  return Math.min(12, Math.max(1, current + Math.sign(Number(direction) || 0)));
+};
+
+export const detectMonthSwipe = ({ deltaX, deltaY, threshold = 48, dominance = 1.25 }) => {
+  const horizontal = Math.abs(deltaX);
+  const vertical = Math.abs(deltaY);
+  if (horizontal < threshold || horizontal <= vertical * dominance) return 0;
+  return deltaX < 0 ? 1 : -1;
+};
+
 export const createPeriodRange = (startValue, weeks) => {
   const startDate = toDate(startValue);
   const endDate = addDays(startDate, weeks * 7 - 1);

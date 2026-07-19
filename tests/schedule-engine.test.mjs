@@ -9,6 +9,8 @@ import {
   calculateHolidaySummary,
   createPeriodRange,
   formatDateUTC,
+  detectMonthSwipe,
+  getAdjacentMonth,
   getMonthPreset,
   getStaffingOptions,
   getStaffingSelection,
@@ -63,6 +65,22 @@ test('month preset lookup preserves all configured values', () => {
   assert.deepEqual(getMonthPreset(3), { start: '2026-03-02', weeks: 5 });
   assert.deepEqual(getMonthPreset('12'), { start: '2026-12-07', weeks: 4 });
   assert.equal(getMonthPreset(13), null);
+});
+
+test('month navigation stops at January and December boundaries', () => {
+  assert.equal(getAdjacentMonth(1, -1), 1);
+  assert.equal(getAdjacentMonth(1, 1), 2);
+  assert.equal(getAdjacentMonth(12, 1), 12);
+  assert.equal(getAdjacentMonth(12, -1), 11);
+  assert.equal(getAdjacentMonth(13, 1), null);
+});
+
+test('month swipe requires a deliberate horizontal gesture', () => {
+  assert.equal(detectMonthSwipe({ deltaX: -60, deltaY: 8 }), 1);
+  assert.equal(detectMonthSwipe({ deltaX: 60, deltaY: 8 }), -1);
+  assert.equal(detectMonthSwipe({ deltaX: -30, deltaY: 2 }), 0);
+  assert.equal(detectMonthSwipe({ deltaX: -60, deltaY: 80 }), 0);
+  assert.equal(detectMonthSwipe({ deltaX: 50, deltaY: 40 }), 0);
 });
 
 test('weekends and weekday holidays are counted without overlap', () => {
