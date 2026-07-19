@@ -27,7 +27,15 @@ test('loads the default month and preserves preset period rules', async ({ page 
   await page.locator('#next_month').click();
   await expect(page.locator('#month_select')).toHaveValue('2');
 
+  await page.locator('#month_select').selectOption('4');
+  await expect(page.locator('#start_date_display')).toHaveText(/2026-04-06/);
+  await expect(page.locator('#end_date_display')).toHaveText(/2026-05-03/);
+  await expect(page.locator('#basic')).toHaveText('8');
+  await expect(page.locator('#bonus')).toHaveText('1');
+
   await page.locator('#month_select').selectOption('12');
+  await expect(page.locator('#end_date_display')).toHaveText(/2027-01-03/);
+  await expect(page.locator('#bonus')).toHaveText('2');
   await expect(page.locator('#next_month')).toBeDisabled();
   await page.locator('#prev_month').click();
   await expect(page.locator('#month_select')).toHaveValue('11');

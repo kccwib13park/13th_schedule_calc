@@ -1,7 +1,8 @@
 export const FIXED_HOLIDAYS_2026 = new Set([
   '2026-01-01', '2026-02-16', '2026-02-17', '2026-02-18', '2026-03-02',
-  '2026-05-05', '2026-05-25', '2026-06-03', '2026-07-17', '2026-08-17',
-  '2026-09-24', '2026-09-25', '2026-10-05', '2026-10-09', '2026-12-25'
+  '2026-05-01', '2026-05-05', '2026-05-25', '2026-06-03', '2026-07-17',
+  '2026-08-17', '2026-09-24', '2026-09-25', '2026-10-05', '2026-10-09',
+  '2026-12-25', '2027-01-01'
 ]);
 
 export const MONTH_PRESETS_2026 = Object.freeze({
@@ -164,11 +165,11 @@ export function validateScheduleInput(config, suppliedWeeksCount, suppliedTotalD
   if (!Number.isInteger(config.basic) || !Number.isInteger(config.bonus) || config.basic < 0 || config.bonus < 0) {
     return validationError(VALIDATION_CODES.HOLIDAYS_INVALID, 'holidays', '1인당 휴일과 공휴는 0일 이상의 정수여야 합니다.');
   }
-  if (config.basic < weeksCount || config.basic > weeksCount * 2) {
+  if (config.basic !== weeksCount * 2) {
     return validationError(
       VALIDATION_CODES.WEEKLY_OFF_INVALID,
       'holidays',
-      `기본휴일 ${config.basic}일은 ${weeksCount}주 동안 주당 1~2회 규칙을 충족하지 않습니다. ${weeksCount}~${weeksCount * 2}일이어야 합니다.`
+      `기본휴일 ${config.basic}일은 ${weeksCount}주 동안 매주 2회 규칙을 충족하지 않습니다. ${weeksCount * 2}일이어야 합니다.`
     );
   }
   if (config.basic + config.bonus > totalDays) {
@@ -229,8 +230,8 @@ export function analyzeSchedule(config) {
   }
 
   // A weekly total of q days off can be distributed with a minimum shortage of
-  // max(0, q - weeklySlack). The basic-off cap is equivalent to limiting the
-  // total amount above two days off per worker to workers * bonus.
+  // max(0, q - weeklySlack). Every week starts with exactly two basic days off
+  // per worker; only public holidays can increase that weekly total.
   const stateWidth = maximumExtraOff + 1;
   let states = new Map([[0, 0]]);
 
@@ -247,12 +248,12 @@ export function analyzeSchedule(config) {
       const usedOff = Math.floor(key / stateWidth);
       const extraOff = key % stateWidth;
       const minimumThisWeek = Math.max(
-        config.workers,
+        config.workers * 2,
         totalOff - usedOff - remainingWeeks * config.workers * 7
       );
       const maximumThisWeek = Math.min(
         config.workers * 7,
-        totalOff - usedOff - remainingWeeks * config.workers
+        totalOff - usedOff - remainingWeeks * config.workers * 2
       );
 
       for (let weekOff = minimumThisWeek; weekOff <= maximumThisWeek; weekOff += 1) {
@@ -276,7 +277,7 @@ export function analyzeSchedule(config) {
   if (!Number.isFinite(minimumShortage)) {
     return {
       ok: false,
-      inputError: '주당 기본휴일(1~2회) 제약을 만족하는 배치가 존재하지 않습니다.',
+      inputError: '매주 기본휴일 2회 제약을 만족하는 배치가 존재하지 않습니다.',
       inputErrorCode: VALIDATION_CODES.NO_FEASIBLE_STATE,
       inputErrorField: 'general',
       totalDays,

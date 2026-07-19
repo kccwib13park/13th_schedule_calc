@@ -96,6 +96,13 @@ test('weekends and weekday holidays are counted without overlap', () => {
   });
   const holidays = new Set([...FIXED_HOLIDAYS_2026, '2026-08-08']);
   assert.equal(calculateHolidaySummary(toDate('2026-08-03'), toDate('2026-08-09'), holidays).holidayCount, 0);
+
+  assert.deepEqual(calculateHolidaySummary(toDate('2026-04-06'), toDate('2026-05-03')), {
+    weekendCount: 8, holidayCount: 1, monthly: { '2026-05': 1 }
+  });
+  assert.deepEqual(calculateHolidaySummary(toDate('2026-12-07'), toDate('2027-01-03')), {
+    weekendCount: 8, holidayCount: 2, monthly: { '2026-12': 1, '2027-01': 1 }
+  });
 });
 
 test('holiday counting works across month boundaries and without holidays', () => {
@@ -144,15 +151,17 @@ test('workers 1, 2, 3 and 6 preserve baseline feasibility results', () => {
   assert.equal(analyzeSchedule(config({ workers: 6 })).ok, true);
 });
 
-test('minimum staffing above workers and weekly basic-off conflicts are input errors', () => {
+test('minimum staffing above workers and non-exact weekly basic-off totals are input errors', () => {
   assert.equal(
     analyzeSchedule(config({ workers: 3, monSat: 4 })).inputError,
     '최소 근무자는 총인원을 초과할 수 없습니다. 총인원 또는 최소 근무자를 조정해 주세요.'
   );
   assert.equal(
     analyzeSchedule(config({ basic: 3 })).inputError,
-    '기본휴일 3일은 4주 동안 주당 1~2회 규칙을 충족하지 않습니다. 4~8일이어야 합니다.'
+    '기본휴일 3일은 4주 동안 매주 2회 규칙을 충족하지 않습니다. 8일이어야 합니다.'
   );
+  assert.equal(analyzeSchedule(config({ basic: 7 })).inputErrorCode, VALIDATION_CODES.WEEKLY_OFF_INVALID);
+  assert.equal(analyzeSchedule(config({ basic: 9 })).inputErrorCode, VALIDATION_CODES.WEEKLY_OFF_INVALID);
 });
 
 test('shortage is accumulated worker-days, not a count of dates', () => {
@@ -198,7 +207,7 @@ test('optimized weekly DP matches the legacy daily DP across small valid inputs'
 
   for (const period of periods) {
     for (let workers = 1; workers <= 3; workers += 1) {
-      for (const basic of [period.weeks, period.weeks * 2]) {
+      for (const basic of [period.weeks * 2]) {
         for (const bonus of [0, 1]) {
           for (let monSat = 0; monSat <= workers; monSat += 1) {
             for (let sun = 0; sun <= workers; sun += 1) {
@@ -226,11 +235,11 @@ test('optimized weekly DP matches the legacy daily DP across small valid inputs'
     }
   }
 
-  assert.equal(comparisons, 232);
+  assert.equal(comparisons, 116);
 });
 
 test('non-integer, negative and oversized inputs are rejected', () => {
   assert.match(analyzeSchedule(config({ workers: 1.5 })).inputError, /1명 이상의 정수/);
   assert.match(analyzeSchedule(config({ bonus: -1 })).inputError, /0일 이상/);
-  assert.match(analyzeSchedule(config({ basic: 28, bonus: 1 })).inputError, /주당 1~2회/);
+  assert.match(analyzeSchedule(config({ basic: 28, bonus: 1 })).inputError, /매주 2회/);
 });
