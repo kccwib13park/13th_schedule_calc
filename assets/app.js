@@ -3,13 +3,16 @@ import {
   MONTH_PRESETS_2026,
   addDays,
   analyzeSchedule,
+  buildResultSummaryModel,
   calculateHolidaySummary,
   detectMonthSwipe,
   formatDateUTC,
   getAdjacentMonth,
   getStaffingSelection,
   toDate,
-  toMonday
+  toMonday,
+  validateScheduleInput,
+  VALIDATION_CODES
 } from './schedule-engine.js';
 
 const DEFAULT_MONTH = 8;
@@ -18,6 +21,8 @@ const weekdayNames = ['일요일', '월요일', '화요일', '수요일', '목�
 
 const elements = {
   form: document.getElementById('schedule-form'),
+  errorSummary: document.getElementById('error_summary'),
+  errorSummaryList: document.getElementById('error_summary_list'),
   monthSection: document.querySelector('.month-section'),
   monthSelect: document.getElementById('month_select'),
   previousMonth: document.getElementById('prev_month'),
@@ -41,6 +46,14 @@ const elements = {
   result: document.getElementById('result')
 };
 
+elements.errors = {
+  period: document.getElementById('period_error'),
+  workers: document.getElementById('workers_error'),
+  monSat: document.getElementById('mon_sat_error'),
+  sun: document.getElementById('sun_error'),
+  holidays: document.getElementById('holiday_error')
+};
+
 let isCalculating = false;
 let hasCalculated = false;
 let swipeStart = null;
@@ -56,9 +69,14 @@ const updateMonthButtons = () => {
 };
 
 const invalidateResult = () => {
+  clearValidation();
   if (!hasCalculated || isCalculating) return;
-  elements.result.className = 'result stale';
-  elements.result.textContent = '조건이 변경되었습니다. 다시 계산해 결과를 갱신하세요.';
+  renderStatusCard({
+    status: 'stale',
+    icon: '↻',
+    title: '조건이 변경되었습니다.',
+    description: '다시 계산해 현재 조건의 결과를 갱신하세요.'
+  });
 };
 
 const autoFillHolidayInputs = () => {
@@ -82,19 +100,17 @@ const autoFillHolidayInputs = () => {
   elements.holidayMonthly.textContent = `월별 공휴일(주말 제외): ${monthlyText}`;
 };
 
-const syncRangeByStartAndWeeks = (showAlert = false) => {
+const syncRangeByStartAndWeeks = () => {
   if (!elements.startDate.value) return;
   let start = toDate(elements.startDate.value);
 
   if (start.getUTCDay() !== 1) {
     start = toMonday(start);
-    if (showAlert) alert('시작일은 월요일만 가능합니다. 선택한 날짜의 해당 주 월요일로 자동 수정합니다.');
     elements.startDate.value = formatDateUTC(start);
   }
 
   let weeks = Number(elements.weeks.value);
   if (![4, 5].includes(weeks)) {
-    if (showAlert) alert('주차는 4 또는 5만 입력 가능합니다. 기본값 4로 설정합니다.');
     weeks = 4;
     elements.weeks.value = '4';
   }
@@ -166,6 +182,7 @@ const updateWorkers = (delta) => {
 };
 
 const resetInitialState = () => {
+  clearValidation();
   elements.monthSelect.value = String(DEFAULT_MONTH);
   elements.workers.value = String(DEFAULT_WORKERS);
   elements.adjustmentNotice.textContent = '';
@@ -189,6 +206,81 @@ const buildConfig = () => ({
   ]
 });
 
+const clearValidation = () => {
+  elements.errorSummary.hidden = true;
+  elements.errorSummaryList.replaceChildren();
+  for (const error of Object.values(elements.errors)) error.textContent = '';
+  for (const control of [elements.workers, elements.monSat, elements.sun]) {
+    control.removeAttribute('aria-invalid');
+  }
+};
+
+const renderValidationError = (validation) => {
+  clearValidation();
+  const summaryItem = document.createElement('li');
+  summaryItem.textContent = validation.message;
+  elements.errorSummaryList.appendChild(summaryItem);
+  elements.errorSummary.hidden = false;
+
+  let focusTarget = elements.errorSummary;
+  if (validation.field === 'workers') {
+    elements.errors.workers.textContent = validation.message;
+    elements.workers.setAttribute('aria-invalid', 'true');
+    focusTarget = elements.workers;
+  } else if (validation.field === 'staffing') {
+    elements.errors.monSat.textContent = validation.message;
+    elements.errors.sun.textContent = validation.message;
+    elements.monSat.setAttribute('aria-invalid', 'true');
+    elements.sun.setAttribute('aria-invalid', 'true');
+    focusTarget = elements.monSat;
+  } else if (validation.field === 'period') {
+    elements.errors.period.textContent = validation.message;
+    focusTarget = elements.monthSelect;
+  } else if (validation.field === 'holidays') {
+    elements.errors.holidays.textContent = validation.message;
+    focusTarget = elements.monthSelect;
+  }
+
+  focusTarget.focus({ preventScroll: true });
+  focusTarget.scrollIntoView({ behavior: 'auto', block: 'center' });
+};
+
+const createMetricList = (metrics) => {
+  const list = document.createElement('dl');
+  list.className = 'result-metrics';
+  for (const [label, value] of metrics) {
+    const row = document.createElement('div');
+    const term = document.createElement('dt');
+    const definition = document.createElement('dd');
+    term.textContent = label;
+    definition.textContent = value;
+    row.append(term, definition);
+    list.appendChild(row);
+  }
+  return list;
+};
+
+const renderStatusCard = ({ status, icon, title, description, metrics = [] }) => {
+  const header = document.createElement('div');
+  header.className = 'result-header';
+  const statusIcon = document.createElement('span');
+  statusIcon.className = 'result-icon';
+  statusIcon.setAttribute('aria-hidden', 'true');
+  statusIcon.textContent = icon;
+  const copy = document.createElement('div');
+  const heading = document.createElement('h3');
+  heading.textContent = title;
+  const explanation = document.createElement('p');
+  explanation.textContent = description;
+  copy.append(heading, explanation);
+  header.append(statusIcon, copy);
+
+  elements.result.className = `result ${status}`;
+  elements.result.style.display = 'block';
+  elements.result.replaceChildren(header);
+  if (metrics.length) elements.result.appendChild(createMetricList(metrics));
+};
+
 const focusResult = () => {
   const rect = elements.result.getBoundingClientRect();
   const outsideViewport = rect.top < 0 || rect.bottom > window.innerHeight;
@@ -199,28 +291,24 @@ const focusResult = () => {
   }
 };
 
-const renderScheduleResult = (scheduleResult) => {
-  elements.result.style.display = 'block';
+const renderScheduleResult = (config, scheduleResult) => {
   if (scheduleResult.inputError) {
-    elements.result.className = 'result error';
-    elements.result.innerHTML = `❌ <b>입력 조건이 규칙과 충돌합니다.</b><br>${scheduleResult.inputError}`;
+    renderStatusCard({
+      status: 'input-error',
+      icon: '×',
+      title: scheduleResult.inputErrorCode === VALIDATION_CODES.NO_FEASIBLE_STATE
+        ? '계산 가능한 휴일 배치가 없습니다.'
+        : '입력 조건 오류가 있습니다.',
+      description: scheduleResult.inputError
+    });
     return;
   }
 
-  const statHtml = `<div class="stats">
-    <div class="stat">기간 일수<br><b>${scheduleResult.totalDays}일</b></div>
-    <div class="stat">필요 근무 총합<br><b>${scheduleResult.totalReq}회</b></div>
-    <div class="stat">최대 충족 가능<br><b>${scheduleResult.maxCovered}회</b></div>
-  </div>`;
-  const selectedMonth = Number(elements.monthSelect.value);
-
-  if (scheduleResult.ok) {
-    elements.result.className = 'result success';
-    elements.result.innerHTML = `✅ <b>26년 ${selectedMonth}월에는 규칙대로 스케줄 작성이 가능합니다</b>${statHtml}`;
-  } else {
-    elements.result.className = 'result error';
-    elements.result.innerHTML = `❌ <b>26년 ${selectedMonth}월에는 규칙대로 스케줄 작성이 불가능합니다.</b><br>필수 인원을 3명→2명으로 낮춰야 하는 최소 일수: <b>${scheduleResult.shortage}일</b>${statHtml}`;
-  }
+  renderStatusCard(buildResultSummaryModel(
+    config,
+    scheduleResult,
+    Number(elements.monthSelect.value)
+  ));
 };
 
 elements.previousMonth.addEventListener('click', () => changeMonth(-1));
@@ -260,31 +348,49 @@ elements.form.addEventListener('submit', async (event) => {
   event.preventDefault();
   if (isCalculating) return;
 
+  syncRangeByStartAndWeeks();
+  const config = buildConfig();
+  const validation = validateScheduleInput(config);
+  if (validation) {
+    renderValidationError(validation);
+    renderStatusCard({
+      status: 'input-error',
+      icon: '×',
+      title: '입력 조건 오류가 있습니다.',
+      description: '표시된 입력을 수정한 뒤 다시 계산해 주세요.'
+    });
+    hasCalculated = true;
+    return;
+  }
+  clearValidation();
+
   isCalculating = true;
   elements.form.setAttribute('aria-busy', 'true');
   elements.calculateButton.disabled = true;
   elements.calculateButton.textContent = '계산 중…';
-  elements.result.style.display = 'block';
-  elements.result.className = 'result loading';
-  elements.result.textContent = '입력 조건을 계산하고 있습니다.';
+  renderStatusCard({
+    status: 'loading',
+    icon: '…',
+    title: '계산 중입니다.',
+    description: '입력 조건으로 가능한 휴일 배치를 확인하고 있습니다.'
+  });
 
   await new Promise((resolve) => requestAnimationFrame(resolve));
   await new Promise((resolve) => setTimeout(resolve, 0));
 
   try {
-    syncRangeByStartAndWeeks(true);
-    const scheduleResult = analyzeSchedule(buildConfig());
-    renderScheduleResult(scheduleResult);
+    const scheduleResult = analyzeSchedule(config);
+    renderScheduleResult(config, scheduleResult);
     hasCalculated = true;
-    if (scheduleResult.inputError && !Number.isInteger(Number(elements.workers.value))) {
-      elements.workers.focus();
-    } else {
-      focusResult();
-    }
+    focusResult();
   } catch (error) {
     console.error(error);
-    elements.result.className = 'result error';
-    elements.result.textContent = '예상하지 못한 계산 오류가 발생했습니다. 입력값을 확인한 뒤 다시 시도해 주세요.';
+    renderStatusCard({
+      status: 'unexpected-error',
+      icon: '!',
+      title: '예상하지 못한 계산 오류가 발생했습니다.',
+      description: '입력값을 확인한 뒤 다시 시도해 주세요. 문제가 반복되면 관리자에게 알려 주세요.'
+    });
     focusResult();
   } finally {
     isCalculating = false;
