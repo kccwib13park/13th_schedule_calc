@@ -20,6 +20,7 @@ import {
   validateScheduleInput,
   VALIDATION_CODES
 } from '../assets/schedule-engine.js';
+import { analyzeScheduleLegacy } from './legacy-schedule-engine.mjs';
 
 const config = ({
   start = '2026-01-05',
@@ -186,6 +187,46 @@ test('period errors expose a stable code and field', () => {
     field: 'period',
     message: '계산 기간이 올바르지 않습니다. 월을 다시 선택해 주세요.'
   });
+});
+
+test('optimized weekly DP matches the legacy daily DP across small valid inputs', () => {
+  const periods = [
+    { start: '2026-01-05', end: '2026-02-01', weeks: 4 },
+    { start: '2026-08-03', end: '2026-09-06', weeks: 5 }
+  ];
+  let comparisons = 0;
+
+  for (const period of periods) {
+    for (let workers = 1; workers <= 3; workers += 1) {
+      for (const basic of [period.weeks, period.weeks * 2]) {
+        for (const bonus of [0, 1]) {
+          for (let monSat = 0; monSat <= workers; monSat += 1) {
+            for (let sun = 0; sun <= workers; sun += 1) {
+              const input = config({ ...period, workers, basic, bonus, monSat, sun });
+              const optimized = analyzeSchedule(input);
+              const legacy = analyzeScheduleLegacy(input);
+              assert.deepEqual(
+                {
+                  ok: optimized.ok,
+                  inputErrorCode: optimized.inputErrorCode,
+                  totalDays: optimized.totalDays,
+                  totalReq: optimized.totalReq,
+                  maxCovered: optimized.maxCovered,
+                  shortage: optimized.shortage,
+                  weeksCount: optimized.weeksCount
+                },
+                legacy,
+                JSON.stringify({ period, workers, basic, bonus, monSat, sun })
+              );
+              comparisons += 1;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  assert.equal(comparisons, 232);
 });
 
 test('non-integer, negative and oversized inputs are rejected', () => {
