@@ -219,45 +219,58 @@ export function analyzeSchedule(config) {
   }
 
   const totalOff = config.workers * (config.basic + config.bonus);
-  const totalBasic = config.workers * config.basic;
-  let states = new Map([['0|0|0', 0]]);
+  const maximumExtraOff = config.workers * config.bonus;
+  const weekSlacks = [];
+  for (let offset = 0; offset < period.length; offset += 7) {
+    weekSlacks.push(period.slice(offset, offset + 7).reduce(
+      (sum, day) => sum + config.workers - config.required[day.dow],
+      0
+    ));
+  }
+
+  // A weekly total of q days off can be distributed with a minimum shortage of
+  // max(0, q - weeklySlack). The basic-off cap is equivalent to limiting the
+  // total amount above two days off per worker to workers * bonus.
+  const stateWidth = maximumExtraOff + 1;
+  let states = new Map([[0, 0]]);
 
   const upsert = (map, key, value) => {
     const previous = map.get(key);
     if (previous === undefined || value < previous) map.set(key, value);
   };
 
-  for (const day of period) {
-    const slack = config.workers - config.required[day.dow];
+  weekSlacks.forEach((weeklySlack, weekIndex) => {
     const next = new Map();
+    const remainingWeeks = weekSlacks.length - weekIndex - 1;
 
     for (const [key, currentShortage] of states) {
-      const [usedOff, weekOff, cap] = key.split('|').map(Number);
-      for (let off = 0; off <= config.workers; off += 1) {
-        const nextUsed = usedOff + off;
-        if (nextUsed > totalOff) continue;
+      const usedOff = Math.floor(key / stateWidth);
+      const extraOff = key % stateWidth;
+      const minimumThisWeek = Math.max(
+        config.workers,
+        totalOff - usedOff - remainingWeeks * config.workers * 7
+      );
+      const maximumThisWeek = Math.min(
+        config.workers * 7,
+        totalOff - usedOff - remainingWeeks * config.workers
+      );
 
-        let nextWeekOff = weekOff + off;
-        let nextCap = cap;
-        if (day.isWeekEnd) {
-          if (nextWeekOff < config.workers) continue;
-          nextCap += Math.min(config.workers * 2, nextWeekOff);
-          nextWeekOff = 0;
-        }
+      for (let weekOff = minimumThisWeek; weekOff <= maximumThisWeek; weekOff += 1) {
+        const nextExtraOff = extraOff + Math.max(0, weekOff - config.workers * 2);
+        if (nextExtraOff > maximumExtraOff) continue;
 
-        // Each unit is one worker unavailable beyond the day's staffing slack.
-        const shortage = currentShortage + Math.max(0, off - slack);
-        upsert(next, `${nextUsed}|${nextWeekOff}|${nextCap}`, shortage);
+        const nextUsedOff = usedOff + weekOff;
+        const shortage = currentShortage + Math.max(0, weekOff - weeklySlack);
+        upsert(next, nextUsedOff * stateWidth + nextExtraOff, shortage);
       }
     }
     states = next;
-  }
+  });
 
   let minimumShortage = Number.POSITIVE_INFINITY;
-  for (const [key, shortage] of states) {
-    const [usedOff, weekOff, cap] = key.split('|').map(Number);
-    if (usedOff !== totalOff || weekOff !== 0 || cap < totalBasic) continue;
-    minimumShortage = Math.min(minimumShortage, shortage);
+  for (let extraOff = 0; extraOff <= maximumExtraOff; extraOff += 1) {
+    const shortage = states.get(totalOff * stateWidth + extraOff);
+    if (shortage !== undefined) minimumShortage = Math.min(minimumShortage, shortage);
   }
 
   if (!Number.isFinite(minimumShortage)) {

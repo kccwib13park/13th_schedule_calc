@@ -57,6 +57,28 @@ elements.errors = {
 let isCalculating = false;
 let hasCalculated = false;
 let swipeStart = null;
+const calculationCache = new Map();
+const MAX_CACHE_ENTRIES = 20;
+
+function analyzeWithCache(config) {
+  const key = JSON.stringify({
+    start: config.startDate.toISOString(),
+    end: config.endDate.toISOString(),
+    workers: config.workers,
+    basic: config.basic,
+    bonus: config.bonus,
+    required: config.required
+  });
+  const cached = calculationCache.get(key);
+  if (cached) return cached;
+
+  const result = analyzeSchedule(config);
+  if (calculationCache.size >= MAX_CACHE_ENTRIES) {
+    calculationCache.delete(calculationCache.keys().next().value);
+  }
+  calculationCache.set(key, result);
+  return result;
+}
 
 const formatDateWithWeekday = (date) => (
   `${formatDateUTC(date)} (${weekdayNames[date.getUTCDay()]})`
@@ -379,7 +401,7 @@ elements.form.addEventListener('submit', async (event) => {
   await new Promise((resolve) => setTimeout(resolve, 0));
 
   try {
-    const scheduleResult = analyzeSchedule(config);
+    const scheduleResult = analyzeWithCache(config);
     renderScheduleResult(config, scheduleResult);
     hasCalculated = true;
     focusResult();
