@@ -131,39 +131,85 @@ export function buildPeriod(startDate, endDate) {
   return days;
 }
 
-export function validateInput(config, weeksCount, totalDays) {
-  if (!Number.isInteger(config.workers) || config.workers < 1) {
-    return '총 인원 수는 1 이상 정수여야 합니다.';
+export const VALIDATION_CODES = Object.freeze({
+  PERIOD_INVALID: 'PERIOD_INVALID',
+  WORKERS_INVALID: 'WORKERS_INVALID',
+  HOLIDAYS_INVALID: 'HOLIDAYS_INVALID',
+  WEEKLY_OFF_INVALID: 'WEEKLY_OFF_INVALID',
+  HOLIDAYS_EXCEED_PERIOD: 'HOLIDAYS_EXCEED_PERIOD',
+  STAFFING_INVALID: 'STAFFING_INVALID',
+  STAFFING_EXCEEDS_WORKERS: 'STAFFING_EXCEEDS_WORKERS',
+  NO_FEASIBLE_STATE: 'NO_FEASIBLE_STATE'
+});
+
+const validationError = (code, field, message) => ({ code, field, message });
+
+export function validateScheduleInput(config, suppliedWeeksCount, suppliedTotalDays) {
+  const startTime = config.startDate instanceof Date ? config.startDate.getTime() : Number.NaN;
+  const endTime = config.endDate instanceof Date ? config.endDate.getTime() : Number.NaN;
+  if (!Number.isFinite(startTime) || !Number.isFinite(endTime) || startTime > endTime) {
+    return validationError(VALIDATION_CODES.PERIOD_INVALID, 'period', '계산 기간이 올바르지 않습니다. 월을 다시 선택해 주세요.');
   }
-  if (config.basic < 0 || config.bonus < 0) {
-    return '휴일 수는 0 이상이어야 합니다.';
+  if (config.startDate.getUTCDay() !== 1 || config.endDate.getUTCDay() !== 0) {
+    return validationError(VALIDATION_CODES.PERIOD_INVALID, 'period', '계산 기간은 월요일에 시작해 일요일에 끝나야 합니다.');
+  }
+
+  const period = suppliedTotalDays === undefined ? buildPeriod(config.startDate, config.endDate) : null;
+  const totalDays = suppliedTotalDays ?? period.length;
+  const weeksCount = suppliedWeeksCount ?? period.filter((day) => day.isWeekEnd).length;
+
+  if (!Number.isInteger(config.workers) || config.workers < 1) {
+    return validationError(VALIDATION_CODES.WORKERS_INVALID, 'workers', '총인원은 1명 이상의 정수로 입력해 주세요.');
+  }
+  if (!Number.isInteger(config.basic) || !Number.isInteger(config.bonus) || config.basic < 0 || config.bonus < 0) {
+    return validationError(VALIDATION_CODES.HOLIDAYS_INVALID, 'holidays', '1인당 휴일과 공휴는 0일 이상의 정수여야 합니다.');
   }
   if (config.basic < weeksCount || config.basic > weeksCount * 2) {
-    return `기본휴일 ${config.basic}일은 기간 내 ${weeksCount}주 규칙(주당 1~2회)과 맞지 않습니다. (${weeksCount}~${weeksCount * 2}일 필요)`;
+    return validationError(
+      VALIDATION_CODES.WEEKLY_OFF_INVALID,
+      'holidays',
+      `기본휴일 ${config.basic}일은 ${weeksCount}주 동안 주당 1~2회 규칙을 충족하지 않습니다. ${weeksCount}~${weeksCount * 2}일이어야 합니다.`
+    );
   }
   if (config.basic + config.bonus > totalDays) {
-    return '1인당 전체 휴일(기본+공휴)이 기간 일수보다 많습니다.';
+    return validationError(VALIDATION_CODES.HOLIDAYS_EXCEED_PERIOD, 'holidays', '1인당 전체 휴일이 계산 기간의 전체 일수보다 많습니다.');
   }
-  if (config.required.some((count) => count < 0 || !Number.isInteger(count))) {
-    return '요일별 필수 인원은 0 이상 정수여야 합니다.';
+  if (!Array.isArray(config.required) || config.required.length !== 7 || config.required.some((count) => count < 0 || !Number.isInteger(count))) {
+    return validationError(VALIDATION_CODES.STAFFING_INVALID, 'staffing', '최소 근무자는 0명 이상의 정수로 선택해 주세요.');
   }
   if (config.required.some((count) => count > config.workers)) {
-    return '요일별 필수 인원은 총 인원 수를 초과할 수 없습니다.';
+    return validationError(VALIDATION_CODES.STAFFING_EXCEEDS_WORKERS, 'staffing', '최소 근무자는 총인원을 초과할 수 없습니다. 총인원 또는 최소 근무자를 조정해 주세요.');
   }
-  return '';
+  return null;
+}
+
+export function validateInput(config, weeksCount, totalDays) {
+  return validateScheduleInput(config, weeksCount, totalDays)?.message ?? '';
 }
 
 export function analyzeSchedule(config) {
-  const period = buildPeriod(config.startDate, config.endDate);
+  const periodIsValid = config.startDate instanceof Date
+    && config.endDate instanceof Date
+    && Number.isFinite(config.startDate.getTime())
+    && Number.isFinite(config.endDate.getTime())
+    && config.startDate <= config.endDate;
+  const period = periodIsValid ? buildPeriod(config.startDate, config.endDate) : [];
   const totalDays = period.length;
-  const totalReq = period.reduce((sum, day) => sum + config.required[day.dow], 0);
+  const hasNumericRequirements = Array.isArray(config.required)
+    && config.required.length === 7
+    && config.required.every(Number.isFinite);
+  const totalReq = hasNumericRequirements
+    ? period.reduce((sum, day) => sum + config.required[day.dow], 0)
+    : 0;
   const weeksCount = period.filter((day) => day.isWeekEnd).length;
-  const inputError = validateInput(config, weeksCount, totalDays);
+  const validation = validateScheduleInput(config, weeksCount, totalDays);
 
-  if (inputError) {
+  if (validation) {
     return {
       ok: false,
-      inputError,
+      inputError: validation.message,
+      inputErrorCode: validation.code,
+      inputErrorField: validation.field,
       totalDays,
       totalReq,
       maxCovered: 0,
@@ -218,6 +264,8 @@ export function analyzeSchedule(config) {
     return {
       ok: false,
       inputError: '주당 기본휴일(1~2회) 제약을 만족하는 배치가 존재하지 않습니다.',
+      inputErrorCode: VALIDATION_CODES.NO_FEASIBLE_STATE,
+      inputErrorField: 'general',
       totalDays,
       totalReq,
       maxCovered: 0,
@@ -235,5 +283,41 @@ export function analyzeSchedule(config) {
     shortage,
     weeksCount,
     inputError: ''
+  };
+}
+
+export function buildResultSummaryModel(config, scheduleResult, month) {
+  const period = `${formatDateUTC(config.startDate)} ~ ${formatDateUTC(config.endDate)}`;
+  const monSat = config.required[1];
+  const sunday = config.required[0];
+  const baseMetrics = [
+    ['계산 기간', period],
+    ['주차', `${scheduleResult.weeksCount}주`],
+    ['총인원', `${config.workers}명`],
+    ['1인당 기본휴일', `${config.basic}일`],
+    ['1인당 공휴', `${config.bonus}일`],
+    ['월~토 최소 근무자', `${monSat}명`],
+    ['일요일 최소 근무자', `${sunday}명`],
+    ['전체 기간', `${scheduleResult.totalDays}일`],
+    ['필요 근무량', `${scheduleResult.totalReq}인·일`],
+    ['최대 충족 가능량', `${scheduleResult.maxCovered}인·일`]
+  ];
+
+  if (scheduleResult.ok) {
+    return {
+      status: 'success',
+      icon: '✓',
+      title: `2026년 ${month}월은 현재 조건으로 스케줄 작성이 가능합니다.`,
+      description: '설정한 최소 근무자와 휴일 규칙을 모두 충족할 수 있습니다.',
+      metrics: baseMetrics
+    };
+  }
+
+  return {
+    status: 'infeasible',
+    icon: '!',
+    title: `2026년 ${month}월은 현재 조건으로 스케줄 작성이 어렵습니다.`,
+    description: `필수 근무 인원 조건을 충족하지 못하는 총 부족량: ${scheduleResult.shortage}인·일`,
+    metrics: [...baseMetrics, ['총 부족량', `${scheduleResult.shortage}인·일`]]
   };
 }

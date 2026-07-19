@@ -6,6 +6,7 @@ import {
   MONTH_PRESETS_2026,
   addDays,
   analyzeSchedule,
+  buildResultSummaryModel,
   calculateHolidaySummary,
   createPeriodRange,
   formatDateUTC,
@@ -15,7 +16,9 @@ import {
   getStaffingOptions,
   getStaffingSelection,
   toDate,
-  toMonday
+  toMonday,
+  validateScheduleInput,
+  VALIDATION_CODES
 } from '../assets/schedule-engine.js';
 
 const config = ({
@@ -143,11 +146,11 @@ test('workers 1, 2, 3 and 6 preserve baseline feasibility results', () => {
 test('minimum staffing above workers and weekly basic-off conflicts are input errors', () => {
   assert.equal(
     analyzeSchedule(config({ workers: 3, monSat: 4 })).inputError,
-    '요일별 필수 인원은 총 인원 수를 초과할 수 없습니다.'
+    '최소 근무자는 총인원을 초과할 수 없습니다. 총인원 또는 최소 근무자를 조정해 주세요.'
   );
   assert.equal(
     analyzeSchedule(config({ basic: 3 })).inputError,
-    '기본휴일 3일은 기간 내 4주 규칙(주당 1~2회)과 맞지 않습니다. (4~8일 필요)'
+    '기본휴일 3일은 4주 동안 주당 1~2회 규칙을 충족하지 않습니다. 4~8일이어야 합니다.'
   );
 });
 
@@ -158,10 +161,35 @@ test('shortage is accumulated worker-days, not a count of dates', () => {
     shortage: 16, weeksCount: 4, inputError: ''
   });
   assert.equal(result.totalReq - result.maxCovered, result.shortage);
+
+  const model = buildResultSummaryModel(config({ workers: 2, monSat: 2, sun: 2 }), result, 1);
+  assert.equal(model.status, 'infeasible');
+  assert.equal(model.description, '필수 근무 인원 조건을 충족하지 못하는 총 부족량: 16인·일');
+  assert.deepEqual(model.metrics.at(-1), ['총 부족량', '16인·일']);
+  assert.doesNotMatch(JSON.stringify(model), /3명→2명|최소 일수/);
+});
+
+test('result summary is derived from the selected staffing inputs', () => {
+  const scheduleConfig = config({ workers: 6, monSat: 3, sun: 1 });
+  const result = analyzeSchedule(scheduleConfig);
+  const model = buildResultSummaryModel(scheduleConfig, result, 1);
+  assert.equal(model.title, '2026년 1월은 현재 조건으로 스케줄 작성이 가능합니다.');
+  assert.ok(model.metrics.some(([label, value]) => label === '월~토 최소 근무자' && value === '3명'));
+  assert.ok(model.metrics.some(([label, value]) => label === '일요일 최소 근무자' && value === '1명'));
+  assert.ok(model.metrics.some(([label, value]) => label === '필요 근무량' && value.endsWith('인·일')));
+});
+
+test('period errors expose a stable code and field', () => {
+  const invalid = config({ start: '2026-02-02', end: '2026-01-05' });
+  assert.deepEqual(validateScheduleInput(invalid), {
+    code: VALIDATION_CODES.PERIOD_INVALID,
+    field: 'period',
+    message: '계산 기간이 올바르지 않습니다. 월을 다시 선택해 주세요.'
+  });
 });
 
 test('non-integer, negative and oversized inputs are rejected', () => {
-  assert.match(analyzeSchedule(config({ workers: 1.5 })).inputError, /1 이상 정수/);
-  assert.match(analyzeSchedule(config({ bonus: -1 })).inputError, /0 이상/);
+  assert.match(analyzeSchedule(config({ workers: 1.5 })).inputError, /1명 이상의 정수/);
+  assert.match(analyzeSchedule(config({ bonus: -1 })).inputError, /0일 이상/);
   assert.match(analyzeSchedule(config({ basic: 28, bonus: 1 })).inputError, /주당 1~2회/);
 });
