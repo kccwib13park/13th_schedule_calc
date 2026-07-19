@@ -1,0 +1,392 @@
+:root {
+  --bg: #f3f5fb;
+  --card: #ffffff;
+  --text: #1f2937;
+  --muted: #5f6b7a;
+  --line: #dfe4ec;
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --ok-bg: #ecfdf5;
+  --ok-fg: #065f46;
+  --ok-line: #a7f3d0;
+  --bad-bg: #fef2f2;
+  --bad-fg: #991b1b;
+  --bad-line: #fecaca;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--bg);
+  color-scheme: light;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  min-height: 100vh;
+  min-height: 100svh;
+  margin: 0;
+  padding: max(16px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  overflow-x: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+@supports (min-height: 100dvh) {
+  body { min-height: 100dvh; }
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button,
+select {
+  cursor: pointer;
+}
+
+button,
+input,
+select {
+  min-height: 44px;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid rgba(37, 99, 235, .28);
+  outline-offset: 2px;
+}
+
+.app-shell {
+  width: min(100%, 760px);
+  margin: 0 auto;
+}
+
+.app-header {
+  padding: 8px 4px 20px;
+}
+
+.app-kicker {
+  margin: 0 0 4px;
+  color: var(--primary);
+  font-size: .875rem;
+  font-weight: 700;
+}
+
+h1,
+h2,
+p {
+  overflow-wrap: break-word;
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(1.625rem, 7vw, 2.25rem);
+  line-height: 1.25;
+  letter-spacing: -.025em;
+}
+
+.app-description {
+  max-width: 36rem;
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: .9375rem;
+}
+
+.calculator {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--card);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, .06);
+}
+
+.calculator-section {
+  padding: 20px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.month-section {
+  background: #f8faff;
+}
+
+.section-heading {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  margin-bottom: 16px;
+}
+
+.section-heading h2 {
+  margin: 1px 0 0;
+  font-size: 1.0625rem;
+  line-height: 1.35;
+}
+
+.section-heading p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: .875rem;
+  line-height: 1.5;
+}
+
+.step-number {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 50%;
+  background: #e8efff;
+  color: #174ea6;
+  font-size: .8125rem;
+  font-weight: 800;
+}
+
+.field-group {
+  min-width: 0;
+}
+
+.field-group label {
+  display: block;
+  margin: 0 0 7px;
+  color: #344054;
+  font-size: .875rem;
+  font-weight: 650;
+}
+
+input,
+select {
+  width: 100%;
+  border: 1px solid #cbd3df;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--text);
+  font-size: 16px;
+}
+
+input {
+  padding: 10px 12px;
+}
+
+select {
+  padding: 9px 36px 9px 12px;
+}
+
+.month-control,
+.staffing-fields {
+  display: grid;
+  gap: 14px;
+}
+
+.secondary-button,
+.primary-button {
+  width: 100%;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-weight: 700;
+}
+
+.secondary-button {
+  align-self: end;
+  border: 1px solid #cbd3df;
+  background: #fff;
+  color: #344054;
+}
+
+.summary-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.summary-list > div {
+  display: grid;
+  grid-template-columns: minmax(90px, .7fr) minmax(0, 1.3fr);
+  gap: 12px;
+  align-items: center;
+  min-height: 48px;
+  padding: 10px 12px;
+}
+
+.summary-list > div + div {
+  border-top: 1px solid var(--line);
+}
+
+.summary-list dt {
+  color: var(--muted);
+  font-size: .875rem;
+}
+
+.summary-list dd {
+  min-width: 0;
+  margin: 0;
+  text-align: right;
+  font-size: .9375rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+output[data-unit]::after {
+  content: attr(data-unit);
+  margin-left: .15em;
+  font-weight: 600;
+}
+
+.number-field {
+  position: relative;
+}
+
+.number-field input {
+  padding-right: 38px;
+}
+
+.number-field span {
+  position: absolute;
+  top: 50%;
+  right: 13px;
+  color: var(--muted);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.supporting-text,
+.form-hint {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: .875rem;
+  line-height: 1.5;
+}
+
+.action-area {
+  padding: 20px 16px;
+}
+
+.primary-button {
+  min-height: 50px;
+  border: 0;
+  background: var(--primary);
+  color: #fff;
+  font-size: 1rem;
+}
+
+.primary-button:hover {
+  background: var(--primary-hover);
+}
+
+.result-section {
+  padding: 0 16px 20px;
+}
+
+.result {
+  display: none;
+  border: 1px solid;
+  border-radius: 12px;
+  padding: 16px;
+  line-height: 1.6;
+}
+
+.result.success {
+  background: var(--ok-bg);
+  color: var(--ok-fg);
+  border-color: var(--ok-line);
+}
+
+.result.error {
+  background: var(--bad-bg);
+  color: var(--bad-fg);
+  border-color: var(--bad-line);
+}
+
+.stats {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.stat {
+  border-top: 1px solid currentColor;
+  padding-top: 8px;
+  font-size: .875rem;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (min-width: 700px) {
+  body {
+    padding: max(32px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(40px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
+  }
+
+  .app-header {
+    padding: 12px 4px 24px;
+  }
+
+  .calculator-section,
+  .action-area {
+    padding: 24px 28px;
+  }
+
+  .result-section {
+    padding: 0 28px 28px;
+  }
+
+  .month-control {
+    grid-template-columns: minmax(0, 1fr) 160px;
+  }
+
+  .staffing-fields {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .period-summary,
+  .holiday-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .holiday-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .summary-list > div {
+    display: block;
+    min-height: 76px;
+  }
+
+  .summary-list > div + div {
+    border-top: 0;
+    border-left: 1px solid var(--line);
+  }
+
+  .summary-list dd {
+    margin-top: 5px;
+    text-align: left;
+  }
+
+  .stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

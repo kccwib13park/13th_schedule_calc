@@ -3,113 +3,137 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>스케줄 가능 여부 계산기</title>
-  <style>
-    :root {
-      --bg: #f3f5fb; --card: #fff; --text: #1f2937; --muted: #6b7280; --line: #e5e7eb;
-      --primary: #2563eb; --ok-bg: #ecfdf5; --ok-fg: #065f46; --ok-line: #a7f3d0;
-      --bad-bg: #fef2f2; --bad-fg: #991b1b; --bad-line: #fecaca;
-    }
-    * { box-sizing: border-box; }
-    body { margin: 0; font-family: Pretendard, "Malgun Gothic", system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 18px; }
-    .wrap { max-width: 900px; margin: 0 auto; display: grid; gap: 16px; }
-    .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 8px 24px rgba(15,23,42,.06); padding: 18px; }
-    h1 { margin: 0; font-size: clamp(20px,3vw,28px); }
-    .desc { margin: 10px 0 0; color: var(--muted); font-size: 14px; line-height: 1.6; }
-    .top-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; }
-    .week-box { margin-left: auto; display: flex; align-items: center; gap: 8px; }
-    .week-box label { margin: 0; font-size: 13px; font-weight: 700; }
-    .week-box input { width: 74px; text-align: center; }
-    .month-box select { width: 120px; font-size: 16px; font-weight: 700; padding: 10px; }
-    .mini-btn { border: 1px solid #cbd5e1; background: #fff; color: #1f2937; border-radius: 10px; padding: 10px 12px; font-size: 13px; cursor: pointer; }
-    .month-toolbar { display:grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
-    .month-toolbar select, .month-toolbar .mini-btn { width: 100%; height: 44px; font-size: 16px; }
-    .grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
-    .staff-row { display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; grid-column: 1 / -1; }
-    .section-title { margin: 8px 0 10px; font-size: 14px; color: #374151; font-weight: 700; grid-column: 1 / -1; }
-    label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px; }
-    input, textarea { width: 100%; border: 1px solid #d1d5db; border-radius: 10px; padding: 10px; font-size: 14px; font-family: inherit; }
-    input[readonly] { background: #e5e7eb; color: #374151; }
-    input:focus, textarea:focus { outline: 2px solid rgba(37,99,235,.2); border-color: var(--primary); }
-    .weekday-grid { display: grid; grid-template-columns: repeat(7, minmax(0,1fr)); gap: 8px; }
-    .weekday-grid label { margin-bottom: 4px; text-align: center; font-size: 12px; }
-    .btn { margin-top: 14px; width: 100%; border: 0; border-radius: 10px; padding: 12px; background: var(--primary); color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; }
-    .btn:hover { background: #1d4ed8; }
-    .result { display: none; margin-top: 12px; border-radius: 12px; border: 1px solid; padding: 14px; line-height: 1.6; }
-    .result.success { background: var(--ok-bg); color: var(--ok-fg); border-color: var(--ok-line); }
-    .result.error { background: var(--bad-bg); color: var(--bad-fg); border-color: var(--bad-line); }
-    .stats { margin-top: 10px; display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 8px; }
-    .stat { border: 1px dashed #d1d5db; border-radius: 10px; background: #fff; padding: 8px; text-align: center; color: #374151; font-size: 12px; }
-    .hint { margin-top: 8px; color: var(--muted); font-size: 12px; }
-    #holiday_monthly { margin-top: 6px; font-size: 12px; color: #4b5563; }
-    .hidden { display: none !important; }
-    @media (max-width: 760px) {
-      body { padding: 12px; }
-      .card { padding: 14px; }
-      .grid, .weekday-grid, .staff-row { grid-template-columns: 1fr; }
-      .top-row { flex-direction: column; align-items: stretch; }
-      .week-box { width: 100%; justify-content: flex-end; }
-      .stats { grid-template-columns: 1fr; }
-    }
-  </style>
+  <meta name="theme-color" content="#f3f5fb" />
+  <title>2026 근무 스케줄 계산기</title>
+  <link rel="stylesheet" href="assets/styles.css" />
 </head>
 <body>
-  <main class="wrap">
-    <section class="card">
-      <h1>🗓️ 26년 스케줄 계산기</h1>
-      <p class="desc">해당 월을 선택 시 규칙에 따라 시작일과 종료일, 주차가 자동 적용되며, 휴일과 공휴가 자동 계산됩니다.</p>
-      <div class="month-toolbar">
-        <select id="month_select">
-          <option value="1">26년 1월</option><option value="2">26년 2월</option><option value="3">26년 3월</option><option value="4">26년 4월</option>
-          <option value="5">26년 5월</option><option value="6">26년 6월</option><option value="7">26년 7월</option><option value="8" selected>26년 8월</option>
-          <option value="9">26년 9월</option><option value="10">26년 10월</option><option value="11">26년 11월</option><option value="12">26년 12월</option>
-        </select>
-        <button type="button" id="refresh_btn" class="mini-btn">새로고침</button>
+  <main class="app-shell">
+    <header class="app-header">
+      <p class="app-kicker">근무 조건 확인 도구</p>
+      <h1>2026 근무 스케줄 계산기</h1>
+      <p class="app-description">월과 인원 조건을 입력하면 현재 규칙으로 스케줄 작성이 가능한지 계산합니다.</p>
+    </header>
+
+    <form id="schedule-form" class="calculator" novalidate>
+      <section class="calculator-section month-section" aria-labelledby="month-heading">
+        <div class="section-heading">
+          <span class="step-number" aria-hidden="true">1</span>
+          <div>
+            <h2 id="month-heading">계산할 월</h2>
+            <p>월을 선택하면 기간과 휴일이 자동 적용됩니다.</p>
+          </div>
+        </div>
+
+        <div class="month-control">
+          <div class="field-group">
+            <label for="month_select">2026년 월 선택</label>
+            <select id="month_select">
+              <option value="1">1월</option>
+              <option value="2">2월</option>
+              <option value="3">3월</option>
+              <option value="4">4월</option>
+              <option value="5">5월</option>
+              <option value="6">6월</option>
+              <option value="7">7월</option>
+              <option value="8" selected>8월</option>
+              <option value="9">9월</option>
+              <option value="10">10월</option>
+              <option value="11">11월</option>
+              <option value="12">12월</option>
+            </select>
+          </div>
+          <button type="button" id="refresh_btn" class="secondary-button">초기값 복원</button>
+        </div>
+      </section>
+
+      <section class="calculator-section" aria-labelledby="period-heading">
+        <div class="section-heading compact-heading">
+          <span class="step-number" aria-hidden="true">2</span>
+          <div>
+            <h2 id="period-heading">자동 적용 기간</h2>
+            <p>시작일은 월요일, 종료일은 마지막 일요일입니다.</p>
+          </div>
+        </div>
+
+        <dl class="summary-list period-summary" aria-label="자동 계산된 근무 기간">
+          <div>
+            <dt>시작일</dt>
+            <dd><output id="start_date_display"></output></dd>
+          </div>
+          <div>
+            <dt>종료일</dt>
+            <dd><output id="end_date_display"></output></dd>
+          </div>
+          <div>
+            <dt>주차</dt>
+            <dd><output id="weeks" data-unit="주">5</output></dd>
+          </div>
+        </dl>
+        <input type="hidden" id="start_date" value="2026-05-04" />
+        <input type="hidden" id="end_date" />
+      </section>
+
+      <section class="calculator-section" aria-labelledby="staff-heading">
+        <div class="section-heading compact-heading">
+          <span class="step-number" aria-hidden="true">3</span>
+          <div>
+            <h2 id="staff-heading">인원 설정</h2>
+            <p>총인원과 요일별 최소 근무자를 설정하세요.</p>
+          </div>
+        </div>
+
+        <div class="staffing-fields">
+          <div class="field-group workers-field">
+            <label for="workers">총인원</label>
+            <div class="number-field">
+              <input type="number" id="workers" min="1" step="1" value="6" inputmode="numeric" autocomplete="off" required />
+              <span aria-hidden="true">명</span>
+            </div>
+          </div>
+          <div class="field-group">
+            <label for="mon_sat">월~토 최소 근무자</label>
+            <select id="mon_sat"></select>
+          </div>
+          <div class="field-group">
+            <label for="sun">일요일 최소 근무자</label>
+            <select id="sun"></select>
+          </div>
+        </div>
+      </section>
+
+      <section class="calculator-section" aria-labelledby="holiday-heading">
+        <div class="section-heading compact-heading">
+          <span class="step-number" aria-hidden="true">4</span>
+          <div>
+            <h2 id="holiday-heading">자동 계산 휴일</h2>
+            <p>선택한 기간의 1인당 휴일 수입니다.</p>
+          </div>
+        </div>
+
+        <dl class="summary-list holiday-summary" aria-label="자동 계산된 휴일">
+          <div>
+            <dt>기본휴일</dt>
+            <dd><output id="basic" data-unit="일">10</output></dd>
+          </div>
+          <div>
+            <dt>주중 공휴</dt>
+            <dd><output id="bonus" data-unit="일">1</output></dd>
+          </div>
+        </dl>
+        <p id="holiday_monthly" class="supporting-text"></p>
+      </section>
+
+      <div class="action-area">
+        <button type="submit" class="primary-button">스케줄 가능 여부 계산</button>
+        <p class="form-hint">입력 조건을 바꾸면 계산 버튼을 다시 눌러 결과를 갱신하세요.</p>
       </div>
-    </section>
 
-    <section class="card">
-      <form id="schedule-form" novalidate>
-        <div class="top-row">
-          <h2 class="section-title" style="margin:0;">근무 기간</h2>
-          <div class="week-box">
-            <label for="weeks">주차</label>
-            <input type="number" id="weeks" value="4" min="4" max="5" step="1" readonly />
-          </div>
-        </div>
-
-        <div class="grid">
-          <div>
-            <label for="start_date_display">시작일 (자동, 월요일)</label>
-            <input type="text" id="start_date_display" readonly />
-            <input type="hidden" id="start_date" value="2026-05-04" />
-          </div>
-          <div>
-            <label for="end_date_display">종료일 (자동, 일요일)</label>
-            <input type="text" id="end_date_display" readonly />
-            <input type="hidden" id="end_date" />
-          </div>
-
-          <h2 class="section-title">인원 / 휴일 / 근무 필수 인원</h2>
-          <div class="staff-row">
-            <div><label for="workers">총 인원 수</label><input type="number" id="workers" min="1" value="6" required /></div>
-            <div><label for="mon_sat">월~토</label><select id="mon_sat"></select></div>
-            <div><label for="sun">일</label><select id="sun"></select></div>
-          </div>
-          <div><label for="basic">휴일</label><input type="number" id="basic" min="0" value="8" readonly /></div>
-          <div><label for="bonus">공휴</label><input type="number" id="bonus" min="0" value="2" readonly /></div>
-          <div class="hidden">
-            <label for="holiday_input">공휴일 입력</label>
-            <textarea id="holiday_input" rows="2"></textarea>
-            <div id="holiday_monthly"></div>
-          </div>
-        </div>
-
-        <button type="submit" class="btn">계산하기</button>
-        <p class="hint">* 계산을 희망하는 월을 고른 후 계산하기를 누르면 결과가 나옵니다.</p>
-        <div id="result" class="result"></div>
-      </form>
-    </section>
+      <section class="result-section" aria-labelledby="result-heading">
+        <h2 id="result-heading" class="visually-hidden">계산 결과</h2>
+        <div id="result" class="result" role="status" aria-live="polite" aria-atomic="true" tabindex="-1"></div>
+      </section>
+    </form>
   </main>
 
   <script type="module" src="assets/app.js"></script>
