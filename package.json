@@ -4,6 +4,11 @@
   "type": "module",
   "scripts": {
     "test": "node --test",
+    "test:ui": "playwright test",
+    "test:all": "node --test && playwright test",
     "benchmark": "node scripts/benchmark.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.1"
   }
 }

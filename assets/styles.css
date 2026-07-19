@@ -422,6 +422,37 @@ output[data-unit],
   display: none;
 }
 
+.period-summary.period-updated,
+.result.result-updated {
+  animation: surface-enter var(--motion-normal) ease-out;
+}
+
+.adjustment-notice.notice-updated {
+  animation: notice-enter var(--motion-fast) ease-out;
+}
+
+@keyframes surface-enter {
+  from {
+    opacity: .72;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes notice-enter {
+  from {
+    opacity: .72;
+    transform: translateX(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 .action-area {
   padding: 20px 16px;
 }
@@ -551,6 +582,20 @@ output[data-unit],
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:focus-within {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    scroll-behavior: auto !important;
+    transition: none !important;
+  }
 }
 
 @media (min-width: 700px) {

@@ -28,6 +28,7 @@ const elements = {
   previousMonth: document.getElementById('prev_month'),
   nextMonth: document.getElementById('next_month'),
   reset: document.getElementById('refresh_btn'),
+  periodSummary: document.querySelector('.period-summary'),
   startDate: document.getElementById('start_date'),
   startDateDisplay: document.getElementById('start_date_display'),
   endDate: document.getElementById('end_date'),
@@ -59,6 +60,11 @@ let hasCalculated = false;
 let swipeStart = null;
 const calculationCache = new Map();
 const MAX_CACHE_ENTRIES = 20;
+
+const restartMotion = (element, className) => {
+  element.classList.remove(className);
+  requestAnimationFrame(() => element.classList.add(className));
+};
 
 function analyzeWithCache(config) {
   const key = JSON.stringify({
@@ -150,6 +156,7 @@ const applyMonthPreset = ({ invalidate = true } = {}) => {
   elements.startDate.value = preset.start;
   elements.weeks.value = String(preset.weeks);
   syncRangeByStartAndWeeks(false);
+  restartMotion(elements.periodSummary, 'period-updated');
   updateMonthButtons();
   if (invalidate) invalidateResult();
 };
@@ -195,6 +202,9 @@ const refreshRequiredOptions = ({ initialize = false, announce = false } = {}) =
   elements.adjustmentNotice.textContent = announce && changes.length
     ? `총인원 ${workers}명에서 선택할 수 있는 범위에 맞춰 ${changes.join(', ')}으로 자동 조정했습니다.`
     : '';
+  if (elements.adjustmentNotice.textContent) {
+    restartMotion(elements.adjustmentNotice, 'notice-updated');
+  }
 };
 
 const updateWorkers = (delta) => {
@@ -298,6 +308,7 @@ const renderStatusCard = ({ status, icon, title, description, metrics = [] }) =>
   header.append(statusIcon, copy);
 
   elements.result.className = `result ${status}`;
+  restartMotion(elements.result, 'result-updated');
   elements.result.style.display = 'block';
   elements.result.replaceChildren(header);
   if (metrics.length) elements.result.appendChild(createMetricList(metrics));
